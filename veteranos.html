@@ -180,9 +180,18 @@ function parseFecha(str){
 }
 function parseMes(str){
   if(!str) return null;
-  str=str.trim();
+  str=str.toString().trim();
+  // formato MM-YYYY o MM/YYYY
   var m=str.match(/^(\d{2})[-\/](\d{4})$/);
-  return m?m[1]+'-'+m[2]:null;
+  if(m) return m[1]+'-'+m[2];
+  // formato Date serializado: "Sun Mar 01 2026 00:00:00 GMT..."
+  var d=new Date(str);
+  if(!isNaN(d.getTime())){
+    var mo=String(d.getMonth()+1).padStart(2,'0');
+    var y=d.getFullYear();
+    return mo+'-'+y;
+  }
+  return null;
 }
 function parseImp(str){
   if(!str) return 0;
