@@ -211,18 +211,27 @@ function parseImp(str){
   return isNaN(n)?0:n;
 }
 
+var EXCLUIDOS=["PUJOL","DE ASSIS","DE LA TORRE","ENCINA","FRETTE","GARCIA GUILLERMO",
+  "LEGUIZAMON","OJEDA","PAREDES","PAZOS","GRACHOT","ROMERO VALDEZ",
+  "SEGUNDO","TORRES LUCAS","YUNIS","ZAMUDIO","COLMAN","GIMENEZ ALBERTO"];
+
+function estaExcluido(nombre){
+  var n=nombre.toUpperCase();
+  return EXCLUIDOS.some(function(e){return n.indexOf(e)>=0;});
+}
+
 function procesarCSV(rows){
   PAGOS_DETALLE={};
   rows.forEach(function(r){
     var tipo=(r[1]||'').trim().toUpperCase();
     if(tipo!=='JUGADOR') return;
     var jug=(r[2]||'').trim();
-    if(!jug) return;
-    var mes=parseMes(r[3]);
-    if(!mes||!mes.endsWith('2026')) return;
+    if(!jug||estaExcluido(jug)) return;
+    var fecha=parseFecha(r[0]);
+    if(!fecha||fecha.substring(0,4)!=='2026') return; // solo pagos con fecha 2026
     var imp=parseImp(r[4]);
     if(imp<=0) return;
-    var fecha=parseFecha(r[0]);
+    var mes=parseMes(r[3]);
     if(!PAGOS_DETALLE[jug]) PAGOS_DETALLE[jug]=[];
     PAGOS_DETALLE[jug].push({fecha:fecha,mes:mes,importe:imp});
   });
@@ -322,9 +331,17 @@ function renderTodo(){
     return activos*std;
   });
 
-  // Recaudación lograda — usa datos reales del resumen del Sheet
-  var logrado=mesesVis.map(function(m){
-    return LOGRADO_REAL[m]||0;
+  // Recaudación lograda por fecha real de pago (excluye jugadores no activos)
+  var logrado=mesesVis.map(function(){return 0;});
+  Object.keys(PAGOS_DETALLE).forEach(function(j){
+    (PAGOS_DETALLE[j]||[]).forEach(function(p){
+      if(!p.fecha||p.fecha.length<7) return;
+      var anio=p.fecha.substring(0,4);
+      var mes=p.fecha.substring(5,7);
+      var mesKey=mes+'-'+anio;
+      var idx=mesesVis.indexOf(mesKey);
+      if(idx>=0) logrado[idx]+=p.importe;
+    });
   });
 
   if(chartBar) chartBar.destroy();
