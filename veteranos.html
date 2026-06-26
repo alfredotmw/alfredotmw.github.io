@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Veteranos A — Cuotas Económicas</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f7f7f4;color:#1a1a1a;font-size:14px}
+.container{max-width:700px;margin:0 auto;padding:16px}
+
+/* header */
+.header{text-align:center;padding:20px 0 14px;margin-bottom:16px}
+.header h1{font-size:20px;font-weight:600}
+.header p{font-size:12px;color:#888;margin-top:4px}
+
+/* tabs */
+.tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid #e0e0d8}
+.tab{flex:1;padding:9px 0;cursor:pointer;font-size:13px;text-align:center;border-bottom:2px solid transparent;margin-bottom:-2px;color:#888;font-weight:500;transition:color .2s}
+.tab.active{border-bottom-color:#2a78d6;color:#2a78d6}
+
+/* metrics */
+.grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+.metric{background:#fff;border:0.5px solid #e8e8e0;border-radius:10px;padding:12px 14px}
+.metric .lbl{font-size:11px;color:#999;margin-bottom:3px}
+.metric .val{font-size:20px;font-weight:600}
+
+/* card */
+.card{background:#fff;border:0.5px solid #e8e8e0;border-radius:12px;padding:16px;margin-bottom:14px}
+.card h3{font-size:13px;font-weight:600;color:#555;margin-bottom:12px;text-transform:uppercase;letter-spacing:.4px}
+
+/* semáforo */
+.sf-wrap{overflow-x:auto}
+.sf-table{width:100%;border-collapse:collapse;font-size:12px;min-width:400px}
+.sf-table th{padding:5px 4px;text-align:center;font-weight:500;color:#999;font-size:10px;border-bottom:1px solid #f0f0ec;white-space:nowrap}
+.sf-table th.left{text-align:left;padding-left:6px}
+.sf-table td{padding:5px 3px;text-align:center;border-bottom:0.5px solid #f5f5f2}
+.sf-table td.name{text-align:left;padding-left:6px;font-size:12px;font-weight:500;white-space:nowrap}
+.dot{width:16px;height:16px;border-radius:50%;display:inline-block;vertical-align:middle}
+.dot.ok{background:#4caf50}
+.dot.mal{background:#f44336}
+.dot.na{background:#e8e8e0}
+.legend{display:flex;gap:14px;margin-bottom:10px;font-size:11px;color:#777;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:5px}
+
+/* jugador cards (vista pública) */
+.pub-card{background:#fff;border:0.5px solid #e8e8e0;border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.pub-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.pub-nombre{font-weight:600;font-size:13px}
+.pub-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500}
+.pub-badge.ok{background:#e8f5e9;color:#2e7d32}
+.pub-badge.mal{background:#ffebee;color:#c62828}
+.pub-chips{display:flex;gap:4px;flex-wrap:wrap}
+.chip{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+.chip.ok{background:#e8f5e9;color:#2e7d32}
+.chip.mal{background:#ffebee;color:#c62828}
+.pub-resumen{background:#fff;border:0.5px solid #e8e8e0;border-radius:10px;padding:14px;text-align:center;margin-bottom:14px}
+.pub-resumen .big{font-size:28px;font-weight:700;color:#1a1a1a}
+.pub-resumen .sub{font-size:12px;color:#888;margin-top:2px}
+
+/* mensaje */
+.msg-box{background:#f5f5f2;border-radius:8px;padding:14px;font-size:12px;white-space:pre-wrap;line-height:1.7;font-family:monospace;max-height:280px;overflow-y:auto;margin-bottom:10px;border:0.5px solid #e8e8e0}
+.btn{border:0.5px solid #ccc;border-radius:6px;padding:7px 14px;font-size:13px;background:#fff;cursor:pointer;font-weight:500}
+.btn:hover{background:#f5f5f2}
+.copy-ok{color:#2e7d32;font-size:12px;margin-left:8px}
+
+/* loader */
+.loader{text-align:center;padding:40px;color:#aaa;font-size:13px}
+.spinner{width:28px;height:28px;border:3px solid #e0e0d8;border-top-color:#2a78d6;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* chart */
+.chart-wrap{position:relative;height:180px;width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:500px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>⚽ Veteranos A — Económicas</h1>
+  <p id="fechaHeader">Cargando datos...</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="setTab('pub')">Estado del equipo</div>
+  <div class="tab" onclick="setTab('admin')">Panel completo</div>
+</div>
+
+<div id="loader" class="loader"><div class="spinner"></div>Cargando datos del Sheet...</div>
+<div id="content" style="display:none">
+
+  <!-- VISTA PÚBLICA -->
+  <div id="tabPub">
+    <div class="pub-resumen" id="pubResumen"></div>
+    <div id="pubCards"></div>
+  </div>
+
+  <!-- ADMIN -->
+  <div id="tabAdmin" style="display:none">
+    <div class="grid4" id="metrics"></div>
+    <div class="grid2">
+      <div class="card"><h3>Recaudación 2026</h3><div class="chart-wrap"><canvas id="chartBar" role="img" aria-label="Recaudación mensual 2026"></canvas></div></div>
+      <div class="card"><h3>Gastos tesorero</h3><div class="chart-wrap"><canvas id="chartGastos" role="img" aria-label="Gastos del tesorero"></canvas></div></div>
+    </div>
+    <div class="card">
+      <h3>Semáforo de pagos 2026</h3>
+      <div class="legend">
+        <span><span class="dot ok"></span>Pagado</span>
+        <span><span class="dot mal"></span>Adeuda</span>
+        <span><span class="dot na"></span>No aplica</span>
+      </div>
+      <div class="sf-wrap"><table class="sf-table" id="sfTable"></table></div>
+    </div>
+    <div class="card">
+      <h3>Mensaje para el grupo</h3>
+      <div id="msgBox" class="msg-box"></div>
+      <button class="btn" onclick="copiar()">Copiar ↗</button>
+      <span class="copy-ok" id="copyOk" style="display:none">¡Copiado!</span>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+const SHEET_ID='2PACX-1vQw1QxbxrBRS-0l_QjM0Xce-WzueMrV8lyDkHnx3lb4oRh2i3A66eHlrFajlipv-geB02dXeIr76Akz';
+const GID='1795133779';
+const CSV_URL=`https://corsproxy.io/?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/pub?gid=${GID}&single=true&output=csv`)}`;
+
+const MESES_2026=["01-2026","02-2026","03-2026","04-2026","05-2026","06-2026","07-2026","08-2026","09-2026","10-2026","11-2026","12-2026"];
+const NM=["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const NML=["","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const CUOTA_STD={"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":60000,"07-2026":60000,"08-2026":60000,"09-2026":60000,"10-2026":60000,"11-2026":60000,"12-2026":60000};
+const EXCLUIR=["COLMAN HORACIO"];
+
+let RESUMEN={};
+let GASTOS=[];
+let MES_ACTUAL="06-2026";
+let chartBar=null,chartGastos=null;
+
+function fmt(n){return '$'+Math.round(n).toLocaleString('es-AR')}
+function mesLabel(m){const p=m.split('-');return NM[parseInt(p[0])]+' '+p[1].substring(2);}
+function esPagado(val,std){return val>0&&val>=(std*0.5);}
+
+function parseFecha(str){
+  // formatos: D/M/YYYY H:MM:SS o YYYY-MM-DD
+  if(!str) return null;
+  str=str.trim();
+  const m1=str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m1) return `${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
+  return str.substring(0,10);
+}
+
+function parseMes(str){
+  if(!str) return null;
+  str=str.trim();
+  // formato MM-YYYY o MM/YYYY
+  const m=str.match(/^(\d{2})[-\/](\d{4})$/);
+  if(m) return `${m[1]}-${m[2]}`;
+  return null;
+}
+
+function parseImporte(str){
+  if(!str) return 0;
+  str=str.toString().replace(/\$/g,'').replace(/\./g,'').replace(/,/g,'.').replace(/\s/g,'');
+  const n=parseFloat(str);
+  return isNaN(n)?0:n;
+}
+
+function procesarDatos(rows){
+  RESUMEN={};
+  GASTOS=[];
+  // detectar mes actual: el mes 2026 más reciente con datos
+  let maxMes="01-2026";
+
+  rows.forEach(r=>{
+    const tipo=(r[1]||'').trim().toUpperCase();
+    const fecha=parseFecha(r[0]);
+    if(!fecha) return;
+
+    if(tipo==='TESORERO'){
+      const concepto=(r[5]||'').trim().toUpperCase();
+      const imp=parseImporte(r[6]||r[7]||'');
+      if(imp<0&&concepto.includes('PLANILLA')) GASTOS.push({d:fecha,importe:imp});
+      return;
+    }
+
+    if(tipo==='JUGADOR'){
+      const jugador=(r[2]||'').trim();
+      if(!jugador||EXCLUIR.includes(jugador.toUpperCase())) return;
+      const mes=parseMes(r[3]);
+      if(!mes) return;
+      const imp=parseImporte(r[4]);
+      if(imp<=0) return;
+      if(!RESUMEN[jugador]) RESUMEN[jugador]={};
+      RESUMEN[jugador][mes]=(RESUMEN[jugador][mes]||0)+imp;
+      // rastrear mes actual
+      if(mes.endsWith('2026')&&mes>maxMes) maxMes=mes;
+    }
+  });
+  MES_ACTUAL=maxMes;
+}
+
+function dotClass(jugador,mes){
+  const mmap=RESUMEN[jugador]||{};
+  const std=CUOTA_STD[mes]||60000;
+  const primerMes=Object.keys(mmap).filter(m=>m.endsWith('2026')&&mmap[m]>0).sort()[0];
+  const idxP=MESES_2026.indexOf(primerMes);
+  const idxM=MESES_2026.indexOf(mes);
+  if(idxP<0||idxM<idxP) return 'na';
+  return esPagado(mmap[mes]||0,std)?'ok':'mal';
+}
+
+function tieneDeuda(jugador){
+  const mmap=RESUMEN[jugador]||{};
+  const primerMes=Object.keys(mmap).filter(m=>m.endsWith('2026')&&mmap[m]>0).sort()[0];
+  if(!primerMes) return false;
+  const idxI=MESES_2026.indexOf(primerMes);
+  const idxF=MESES_2026.indexOf(MES_ACTUAL);
+  return MESES_2026.slice(idxI,idxF+1).some(m=>!esPagado(mmap[m]||0,CUOTA_STD[m]||60000));
+}
+
+function renderTodo(){
+  const jugadores=Object.keys(RESUMEN).sort();
+  const hoy=new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+  const mesNombre=NML[parseInt(MES_ACTUAL.split('-')[0])]+' '+MES_ACTUAL.split('-')[1];
+  document.getElementById('fechaHeader').textContent='Estado al '+hoy+' · '+mesNombre;
+
+  // métricas
+  const totalIn=Object.values(RESUMEN).reduce((s,mm)=>s+Object.entries(mm).filter(([m])=>m.endsWith('2026')).reduce((ss,[,v])=>ss+v,0),0);
+  const totalOut=GASTOS.reduce((s,r)=>s+r.importe,0);
+  const alDia=jugadores.filter(j=>!tieneDeuda(j)).length;
+  document.getElementById('metrics').innerHTML=`
+    <div class="metric"><div class="lbl">Recaudado 2026</div><div class="val">${fmt(totalIn)}</div></div>
+    <div class="metric"><div class="lbl">Gastos</div><div class="val" style="color:#c62828">${fmt(Math.abs(totalOut))}</div></div>
+    <div class="metric"><div class="lbl">Balance</div><div class="val" style="color:${totalIn+totalOut>=0?'#2e7d32':'#c62828'}">${fmt(totalIn+totalOut)}</div></div>
+    <div class="metric"><div class="lbl">Al día / Total</div><div class="val">${alDia} / ${jugadores.length}</div></div>
+  `;
+
+  // charts
+  const mesesVis=MESES_2026.slice(0,MESES_2026.indexOf(MES_ACTUAL)+1);
+  const ingMap={};
+  jugadores.forEach(j=>{mesesVis.forEach(m=>{ingMap[m]=(ingMap[m]||0)+(RESUMEN[j][m]||0);});});
+  if(chartBar) chartBar.destroy();
+  chartBar=new Chart(document.getElementById('chartBar'),{
+    type:'bar',
+    data:{labels:mesesVis.map(mesLabel),datasets:[{data:mesesVis.map(m=>ingMap[m]||0),backgroundColor:'#2a78d6',borderRadius:3,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>fmt(v.raw)}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>'$'+Math.round(v/1000)+'k'},grid:{color:'#f0f0ec'}}}}
+  });
+
+  const gastosMap={};
+  GASTOS.forEach(r=>{const k=r.d.substring(0,7);gastosMap[k]=(gastosMap[k]||0)+Math.abs(r.importe);});
+  const gM=Object.keys(gastosMap).sort().slice(-8);
+  if(chartGastos) chartGastos.destroy();
+  chartGastos=new Chart(document.getElementById('chartGastos'),{
+    type:'bar',
+    data:{labels:gM.map(m=>{const p=m.split('-');return NM[parseInt(p[1]||p[0])]+' '+((p[1]?p[0]:p[1])||'').substring(2);}),datasets:[{data:gM.map(m=>gastosMap[m]),backgroundColor:'#e53935',borderRadius:3,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>fmt(v.raw)}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{callback:v=>'$'+Math.round(v/1000)+'k'},grid:{color:'#f0f0ec'}}}}
+  });
+
+  // semáforo
+  let html='<thead><tr><th class="left">Jugador</th>';
+  mesesVis.forEach(m=>{html+=`<th>${NM[parseInt(m.split('-')[0])]}</th>`;});
+  html+='<th>Estado</th></tr></thead><tbody>';
+  jugadores.forEach(j=>{
+    html+=`<tr><td class="name">${j}</td>`;
+    let deudas=0;
+    mesesVis.forEach(m=>{const c=dotClass(j,m);if(c==='mal')deudas++;html+=`<td><span class="dot ${c}"></span></td>`;});
+    html+=`<td style="font-size:11px;font-weight:600;color:${deudas===0?'#2e7d32':'#c62828'};white-space:nowrap">${deudas===0?'✅ Al día':'⚠️ '+deudas+' mes'+(deudas>1?'es':'')}</td></tr>`;
+  });
+  html+='</tbody>';
+  document.getElementById('sfTable').innerHTML=html;
+
+  // mensaje
+  const deudoresInfo=[];
+  jugadores.forEach(j=>{
+    const mmap=RESUMEN[j]||{};
+    const primerMes=Object.keys(mmap).filter(m=>m.endsWith('2026')&&mmap[m]>0).sort()[0];
+    if(!primerMes) return;
+    const idxI=MESES_2026.indexOf(primerMes),idxF=MESES_2026.indexOf(MES_ACTUAL);
+    const deberia=MESES_2026.slice(idxI,idxF+1);
+    const mesesDeuda=deberia.filter(m=>!esPagado(mmap[m]||0,CUOTA_STD[m]||60000));
+    if(mesesDeuda.length>0){
+      const lista=mesesDeuda.map(m=>NML[parseInt(m.split('-')[0])]);
+      const total=mesesDeuda.reduce((s,m)=>s+(CUOTA_STD[m]||60000)-(mmap[m]||0),0);
+      deudoresInfo.push({j,lista,total});
+    }
+  });
+  let msg='';
+  if(deudoresInfo.length===0){
+    msg='✅ ¡Todos al día! Sin deudas al '+hoy;
+  } else {
+    msg='⚽ *VETERANOS A — ECONÓMICAS*\n📋 Cuotas pendientes al '+hoy+'\n━━━━━━━━━━━━━━━━━━━━\n\n';
+    deudoresInfo.forEach((d,i)=>{
+      msg+=`${i+1}. *${d.j}*\n`;
+      d.lista.forEach(l=>{msg+=`   • ${l}\n`;});
+      msg+=`   💰 ${fmt(d.total)}\n\n`;
+    });
+    msg+=`━━━━━━━━━━━━━━━━━━━━\n👥 ${deudoresInfo.length} jugador${deudoresInfo.length>1?'es':''} con deuda`;
+  }
+  document.getElementById('msgBox').textContent=msg;
+  window._msg=msg;
+
+  // vista pública
+  const conDeuda=jugadores.filter(j=>tieneDeuda(j)).length;
+  document.getElementById('pubResumen').innerHTML=`
+    <div class="big">${alDia} / ${jugadores.length}</div>
+    <div class="sub">jugadores al día en ${mesNombre}</div>
+    ${conDeuda>0?`<div style="color:#c62828;font-weight:600;margin-top:6px;font-size:13px">⚠️ ${conDeuda} con cuotas pendientes</div>`:'<div style="color:#2e7d32;font-weight:600;margin-top:6px;font-size:13px">✅ ¡Todos al día!</div>'}
+  `;
+
+  const sorted=[...jugadores].sort((a,b)=>{
+    const da=tieneDeuda(a),db=tieneDeuda(b);
+    if(da&&!db) return 1; if(!da&&db) return -1; return a.localeCompare(b);
+  });
+  let pubHtml='';
+  sorted.forEach(j=>{
+    const mmap=RESUMEN[j]||{};
+    const primerMes=Object.keys(mmap).filter(m=>m.endsWith('2026')&&mmap[m]>0).sort()[0];
+    if(!primerMes) return;
+    const td=tieneDeuda(j);
+    const idxI=MESES_2026.indexOf(primerMes);
+    const idxF=MESES_2026.indexOf(MES_ACTUAL);
+    const deberia=MESES_2026.slice(idxI,idxF+1);
+    const mesesDeuda=deberia.filter(m=>!esPagado(mmap[m]||0,CUOTA_STD[m]||60000));
+    let chips='';
+    mesesVis.forEach(m=>{
+      const c=dotClass(j,m);
+      if(c==='na') return;
+      chips+=`<span class="chip ${c==='ok'?'ok':'mal'}">${NM[parseInt(m.split('-')[0])]}</span>`;
+    });
+    pubHtml+=`<div class="pub-card">
+      <div class="pub-top">
+        <span class="pub-nombre">${j}</span>
+        <span class="pub-badge ${td?'mal':'ok'}">${td?`Adeuda ${mesesDeuda.length} mes${mesesDeuda.length>1?'es':''}`:'Al día ✓'}</span>
+      </div>
+      <div class="pub-chips">${chips}</div>
+    </div>`;
+  });
+  document.getElementById('pubCards').innerHTML=pubHtml;
+}
+
+function setTab(t){
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['pub','admin'][i]===t));
+  document.getElementById('tabPub').style.display=t==='pub'?'':'none';
+  document.getElementById('tabAdmin').style.display=t==='admin'?'':'none';
+}
+
+function copiar(){
+  if(!window._msg) return;
+  navigator.clipboard.writeText(window._msg).then(()=>{
+    const ok=document.getElementById('copyOk');
+    ok.style.display='inline';
+    setTimeout(()=>{ok.style.display='none'},2500);
+  });
+}
+
+// Cargar CSV con fallback de proxy
+const BASE_URL=`https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/pub?gid=${GID}&single=true&output=csv`;
+const PROXIES=[
+  `https://corsproxy.io/?url=${encodeURIComponent(BASE_URL)}`,
+  `https://api.allorigins.win/raw?url=${encodeURIComponent(BASE_URL)}`,
+  BASE_URL
+];
+
+function cargarConProxy(idx){
+  if(idx>=PROXIES.length){
+    document.getElementById('loader').innerHTML='<p style="color:#c62828">❌ Error al cargar los datos.<br><small>Verificá que el Sheet esté publicado como CSV.</small></p>';
+    return;
+  }
+  Papa.parse(PROXIES[idx],{
+    download:true,
+    skipEmptyLines:true,
+    complete:function(results){
+      if(!results.data||results.data.length<2){cargarConProxy(idx+1);return;}
+      procesarDatos(results.data);
+      document.getElementById('loader').style.display='none';
+      document.getElementById('content').style.display='';
+      renderTodo();
+    },
+    error:function(){cargarConProxy(idx+1);}
+  });
+}
+cargarConProxy(0);
+</script>
+</body>
+</html>
