@@ -169,22 +169,10 @@ var RESUMEN={
   "SOSA ORTIZ Guillermo Alejandro":{}
 };
 
-var GASTOS_2026=[
-  {d:"2026-03-07",imp:-55000},{d:"2026-03-14",imp:-55000},{d:"2026-03-21",imp:-55000},{d:"2026-03-28",imp:-55000},
-  {d:"2026-04-04",imp:-55000},{d:"2026-04-11",imp:-55000},{d:"2026-04-18",imp:-55000},{d:"2026-04-25",imp:-55000},
-  {d:"2026-05-02",imp:-55000},{d:"2026-05-09",imp:-55000},{d:"2026-05-16",imp:-55000},{d:"2026-05-23",imp:-55000},
-  {d:"2026-06-06",imp:-55000},{d:"2026-06-13",imp:-55000},{d:"2026-06-20",imp:-55000}
-];
+// GASTOS_2026 ya no está hardcodeado — se construye desde el CSV (filas TESORERO con fecha 2026)
+var GASTOS_2026=[];
+var PAGOS_DETALLE={};
 
-// Recaudación lograda por fecha real de pago (fuente: resumen del Sheet)
-var LOGRADO_REAL={
-  "01-2026":390000,
-  "02-2026":510000,
-  "03-2026":1314000,
-  "04-2026":1140000,
-  "05-2026":745000,
-  "06-2026":1260000
-};
 var chartBar=null, chartGastos=null;
 
 function fmt(n){return'$'+Math.round(n).toLocaleString('es-AR');}
@@ -193,9 +181,21 @@ function esPagado(val,std){return val>0&&val>=(std*0.5);}
 
 function parseFecha(str){
   if(!str) return'';
-  str=str.trim();
+  str=str.toString().trim();
+  // formato dd/mm/yyyy
   var m=str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if(m) return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  // formato ISO yyyy-mm-dd
+  var iso=str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(iso) return iso[0];
+  // formato Date serializado por Apps Script: "Thu Feb 19 2026 08:58:12 GMT..."
+  var d=new Date(str);
+  if(!isNaN(d.getTime())){
+    var y=d.getFullYear();
+    var mo=String(d.getMonth()+1).padStart(2,'0');
+    var dy=String(d.getDate()).padStart(2,'0');
+    return y+'-'+mo+'-'+dy;
+  }
   return str.substring(0,10);
 }
 function parseMes(str){
@@ -222,18 +222,32 @@ function estaExcluido(nombre){
 
 function procesarCSV(rows){
   PAGOS_DETALLE={};
+  GASTOS_2026=[];
+
   rows.forEach(function(r){
     var tipo=(r[1]||'').trim().toUpperCase();
-    if(tipo!=='JUGADOR') return;
-    var jug=(r[2]||'').trim();
-    if(!jug||estaExcluido(jug)) return;
     var fecha=parseFecha(r[0]);
-    if(!fecha||fecha.substring(0,4)!=='2026') return; // solo pagos con fecha 2026
-    var imp=parseImp(r[4]);
-    if(imp<=0) return;
-    var mes=parseMes(r[3]);
-    if(!PAGOS_DETALLE[jug]) PAGOS_DETALLE[jug]=[];
-    PAGOS_DETALLE[jug].push({fecha:fecha,mes:mes,importe:imp});
+    if(!fecha||fecha.substring(0,4)!=='2026') return;
+
+    if(tipo==='TESORERO'){
+      // Leer gastos del tesorero desde el sheet — columnas 6 o 7 (MONTO QUE PAGAS)
+      // El sheet tiene el importe negativo en col[6] o col[7]
+      var impBruto=parseImp(r[6])||parseImp(r[7])||0;
+      if(impBruto!==0){
+        GASTOS_2026.push({d:fecha, imp: impBruto < 0 ? impBruto : -Math.abs(impBruto)});
+      }
+      return;
+    }
+
+    if(tipo==='JUGADOR'){
+      var jug=(r[2]||'').trim();
+      if(!jug||estaExcluido(jug)) return;
+      var imp=parseImp(r[4]);
+      if(imp<=0) return;
+      var mes=parseMes(r[3]);
+      if(!PAGOS_DETALLE[jug]) PAGOS_DETALLE[jug]=[];
+      PAGOS_DETALLE[jug].push({fecha:fecha,mes:mes,importe:imp});
+    }
   });
 }
 
@@ -319,7 +333,6 @@ function renderTodo(){
 
   var mesesVis=MESES_2026.slice(0,MESES_2026.indexOf(MES_ACTUAL)+1);
 
-  // Recaudación esperada
   var esperado=mesesVis.map(function(m){
     var std=CUOTA_STD[m]||60000;
     var activos=jugadores.filter(function(j){
@@ -331,13 +344,13 @@ function renderTodo(){
     return activos*std;
   });
 
-  // Recaudación lograda por fecha real de pago (excluye jugadores no activos)
   var logrado=mesesVis.map(function(){return 0;});
   Object.keys(PAGOS_DETALLE).forEach(function(j){
     (PAGOS_DETALLE[j]||[]).forEach(function(p){
-      if(!p.fecha||p.fecha.length<7) return;
-      var anio=p.fecha.substring(0,4);
-      var mes=p.fecha.substring(5,7);
+      var fecha=parseFecha(p.fecha); // normaliza a yyyy-mm-dd
+      if(!fecha||fecha.length<7) return;
+      var anio=fecha.substring(0,4);
+      var mes=fecha.substring(5,7);
       var mesKey=mes+'-'+anio;
       var idx=mesesVis.indexOf(mesKey);
       if(idx>=0) logrado[idx]+=p.importe;
@@ -361,12 +374,14 @@ function renderTodo(){
         y:{ticks:{callback:function(v){return'$'+Math.round(v/1000)+'k';}},grid:{color:'#f0f0ec'}}}}
   });
 
-  // Gastos por fecha real
+  // Gastos por mes — leídos del CSV, fecha normalizada
   var gastosMap={};
   GASTOS_2026.forEach(function(r){
-    var k=r.d.substring(0,7);
-    var p=k.split('-');
-    var mk=p[1]+'-'+p[0];
+    var fecha=parseFecha(r.d); // normaliza dd/mm/yyyy o Date string a yyyy-mm-dd
+    if(!fecha||fecha.length<7) return;
+    var anio=fecha.substring(0,4);
+    var mes=fecha.substring(5,7);
+    var mk=mes+'-'+anio; // "02-2026"
     gastosMap[mk]=(gastosMap[mk]||0)+Math.abs(r.imp);
   });
   var gM=Object.keys(gastosMap).sort(function(a,b){
