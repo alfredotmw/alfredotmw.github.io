@@ -135,7 +135,13 @@ const MESES_2026=["01-2026","02-2026","03-2026","04-2026","05-2026","06-2026","0
 const NM=["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const NML=["","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const CUOTA_STD={"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":60000,"07-2026":60000,"08-2026":60000,"09-2026":60000,"10-2026":60000,"11-2026":60000,"12-2026":60000};
-const EXCLUIR=["COLMAN HORACIO"];
+const EXCLUIR=[
+  "COLMAN HORACIO","PUJOL JUAN","DE ASSIS WALTER RAMON","DE LA TORRE MARCELO",
+  "ENCINA CARLOS RUBEN","FRETTE NICOLAS EDUARDO","GARCIA GUILLERMO CESAR",
+  "LEGUIZAMON VIRGILIO DANIEL","OJEDA DARIO","PAREDES CARLOS ALCIDES",
+  "PAZOS ROBERTO","RICARDO HECTOR GRACHOT","ROMERO VALDEZ DARIO",
+  "SEGUNDO RODRIGO CARLOS","TORRES LUCAS","YUNIS SERGIO HUGO","ZAMUDIO ROMAN FERNANDO"
+];
 
 let RESUMEN={};
 let GASTOS=[];
@@ -191,15 +197,15 @@ function procesarDatos(rows){
 
     if(tipo==='JUGADOR'){
       const jugador=(r[2]||'').trim();
-      if(!jugador||EXCLUIR.includes(jugador.toUpperCase())) return;
+      const jUp=jugador.toUpperCase();
+      if(!jugador||EXCLUIR.some(e=>jUp.includes(e.split(' ')[0]))) return;
       const mes=parseMes(r[3]);
-      if(!mes) return;
+      if(!mes||!mes.endsWith('2026')) return; // solo cuotas 2026
       const imp=parseImporte(r[4]);
       if(imp<=0) return;
       if(!RESUMEN[jugador]) RESUMEN[jugador]={};
       RESUMEN[jugador][mes]=(RESUMEN[jugador][mes]||0)+imp;
-      // rastrear mes actual
-      if(mes.endsWith('2026')&&mes>maxMes) maxMes=mes;
+      if(mes>maxMes) maxMes=mes;
     }
   });
   MES_ACTUAL=maxMes;
