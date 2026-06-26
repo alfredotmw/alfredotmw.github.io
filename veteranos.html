@@ -146,28 +146,8 @@ var CUOTA_STD={"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"
 var MES_INICIO="01-2026";
 var MES_ACTUAL="06-2026";
 
-var RESUMEN={
-  "ACEVEDO Fernando Martin":{"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":60000},
-  "AGUIRRE Alfredo Raul":{"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":30000},
-  "ESCOBAR Pablo Federico":{"01-2026":40000,"02-2026":23000},
-  "GUIDICCE Jorge Daniel":{"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":60000},
-  "PIANALTO Gabriel Mauricio":{"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":30000,"06-2026":30000},
-  "SAÑUDO Esteban Luis":{"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":60000},
-  "VERGARA Luis Alberto":{"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":60000},
-  "VILLALBA Victor Hugo":{"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":60000},
-  "EBERTO Eduardo José":{"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":60000},
-  "ACERBIS Gustavo Javier":{"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":60000},
-  "GENTIL JULIO":{"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000},
-  "Rodriguez Fabian":{"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000},
-  "MARTIN NEIRA":{"01-2026":15000,"02-2026":40000,"03-2026":40000,"04-2026":60000,"05-2026":60000},
-  "HORACIO RAMIREZ VERGAGUER":{"01-2026":12000,"02-2026":40000,"04-2026":60000,"05-2026":60000,"06-2026":60000},
-  "ARIAS DARIO":{"01-2026":15000,"02-2026":40000,"03-2026":40000,"04-2026":60000,"05-2026":30000},
-  "MONTENEGRO JUAN JOSE":{"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":60000},
-  "GONZALEZ ESCUBILLA SERGIO":{"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":60000},
-  "SANCHEZ MATIAS ROLANDO":{"04-2026":80000,"05-2026":100000,"06-2026":60000},
-  "SOLIS ABELARDO":{"03-2026":60000,"04-2026":45000,"05-2026":60000,"06-2026":60000},
-  "SOSA ORTIZ Guillermo Alejandro":{}
-};
+// RESUMEN se construye dinámicamente desde el CSV en procesarCSV()
+var RESUMEN={};
 
 // GASTOS_2026 ya no está hardcodeado — se construye desde el CSV (filas TESORERO con fecha 2026)
 var GASTOS_2026=[];
@@ -223,6 +203,7 @@ function estaExcluido(nombre){
 function procesarCSV(rows){
   PAGOS_DETALLE={};
   GASTOS_2026=[];
+  RESUMEN={};
 
   rows.forEach(function(r){
     var tipo=(r[1]||'').trim().toUpperCase();
@@ -230,11 +211,9 @@ function procesarCSV(rows){
     if(!fecha||fecha.substring(0,4)!=='2026') return;
 
     if(tipo==='TESORERO'){
-      // Leer gastos del tesorero desde el sheet — columnas 6 o 7 (MONTO QUE PAGAS)
-      // El sheet tiene el importe negativo en col[6] o col[7]
       var impBruto=parseImp(r[6])||parseImp(r[7])||0;
       if(impBruto!==0){
-        GASTOS_2026.push({d:fecha, imp: impBruto < 0 ? impBruto : -Math.abs(impBruto)});
+        GASTOS_2026.push({d:fecha, imp: impBruto<0 ? impBruto : -Math.abs(impBruto)});
       }
       return;
     }
@@ -245,6 +224,11 @@ function procesarCSV(rows){
       var imp=parseImp(r[4]);
       if(imp<=0) return;
       var mes=parseMes(r[3]);
+      if(!mes||!mes.endsWith('2026')) return; // solo cuotas de 2026
+      // Acumular en RESUMEN
+      if(!RESUMEN[jug]) RESUMEN[jug]={};
+      RESUMEN[jug][mes]=(RESUMEN[jug][mes]||0)+imp;
+      // Guardar detalle con fecha real para el modal
       if(!PAGOS_DETALLE[jug]) PAGOS_DETALLE[jug]=[];
       PAGOS_DETALLE[jug].push({fecha:fecha,mes:mes,importe:imp});
     }
