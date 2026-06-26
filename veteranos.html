@@ -7,7 +7,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size:14px}
-:root{--negro:#1a1a1a;--amarillo:#f5c500;--amarillo-claro:#fff8d6;--amarillo-borde:#e6b800;--blanco:#ffffff;--gris-fondo:#f2f2f0;--gris-borde:#e0ddd5}
+:root{--negro:#1a1a1a;--amarillo:#f5c500;--amarillo-claro:#fff8d6;--amarillo-borde:#e6b800;--blanco:#ffffff;--gris-borde:#e0ddd5}
 .container{max-width:700px;margin:0 auto;padding:16px}
 .header{text-align:center;padding:20px 16px 16px;margin-bottom:16px;background:var(--negro);border-radius:14px;color:var(--blanco)}
 .header img{width:80px;height:80px;object-fit:contain;display:block;margin:0 auto 8px}
@@ -31,7 +31,7 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 .sf-table th.left{text-align:left;padding-left:6px}
 .sf-table td{padding:5px 3px;text-align:center;border-bottom:0.5px solid #f0f0ec}
 .sf-table tr:hover td{background:#fffbea}
-.sf-table td.name{text-align:left;padding-left:6px;font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;color:var(--negro)}
+.sf-table td.name{text-align:left;padding-left:6px;font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer;text-decoration:underline;text-decoration-style:dotted}
 .sf-table td.name:hover{color:var(--amarillo-borde)}
 .dot{width:16px;height:16px;border-radius:50%;display:inline-block;vertical-align:middle}
 .dot.ok{background:#4caf50}
@@ -61,23 +61,21 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 .loader{text-align:center;padding:40px;color:#aaa;font-size:13px}
 .spinner{width:28px;height:28px;border:3px solid #e0e0d8;border-top-color:var(--amarillo);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
 @keyframes spin{to{transform:rotate(360deg)}}
-/* modal */
 .modal-bg{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.55);z-index:999;justify-content:center;align-items:center}
 .modal-bg.open{display:flex}
 .modal-box{background:#fff;border-radius:14px;padding:20px;width:90%;max-width:380px;max-height:78vh;overflow-y:auto;position:relative}
 .modal-titulo{font-size:14px;font-weight:700;margin-bottom:14px;color:var(--negro);border-left:4px solid var(--amarillo);padding-left:8px;padding-right:30px}
 .modal-cerrar{position:absolute;top:16px;right:16px;cursor:pointer;font-size:22px;color:#aaa;line-height:1;background:none;border:none}
-.modal-fila{display:flex;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid #f0f0ec;font-size:13px}
+.modal-fila{padding:7px 0;border-bottom:0.5px solid #f0f0ec}
 .modal-fila:last-child{border:none}
-.modal-fila.total{border-top:2px solid #eee;margin-top:4px;padding-top:10px;font-weight:700}
-.modal-mes{color:#555}
-.modal-val{font-weight:600;color:var(--negro)}
+.modal-fila-top{display:flex;justify-content:space-between;font-size:13px}
+.modal-fila.total .modal-fila-top{font-weight:700;border-top:2px solid #eee;margin-top:4px;padding-top:8px}
+.modal-fecha{font-size:11px;color:#888;margin-top:2px}
 </style>
 </head>
 <body>
 <div class="container">
 
-<!-- MODAL -->
 <div class="modal-bg" id="modalBg">
   <div class="modal-box">
     <button class="modal-cerrar" id="modalCerrar">✕</button>
@@ -97,16 +95,14 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
   <div class="tab" id="tabBtnAdmin" onclick="setTab('admin')">Panel completo</div>
 </div>
 
-<div id="loader" class="loader"><div class="spinner"></div>Cargando datos del Sheet...</div>
+<div id="loader" class="loader"><div class="spinner"></div>Cargando datos...</div>
 <div id="content" style="display:none">
 
-  <!-- VISTA PÚBLICA -->
   <div id="tabPub">
     <div class="pub-resumen" id="pubResumen"></div>
     <div id="pubCards"></div>
   </div>
 
-  <!-- ADMIN -->
   <div id="tabAdmin" style="display:none">
     <div class="grid4" id="metrics"></div>
     <div class="grid2">
@@ -136,28 +132,23 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
-const SHEET_ID='2PACX-1vQw1QxbxrBRS-0l_QjM0Xce-WzueMrV8lyDkHnx3lb4oRh2i3A66eHlrFajlipv-geB02dXeIr76Akz';
-const GID='1795133779';
-const BASE_URL='https://docs.google.com/spreadsheets/d/e/'+SHEET_ID+'/pub?gid='+GID+'&single=true&output=csv';
-const PROXIES=[
+var SHEET_ID='2PACX-1vQw1QxbxrBRS-0l_QjM0Xce-WzueMrV8lyDkHnx3lb4oRh2i3A66eHlrFajlipv-geB02dXeIr76Akz';
+var GID='1795133779';
+var BASE_URL='https://docs.google.com/spreadsheets/d/e/'+SHEET_ID+'/pub?gid='+GID+'&single=true&output=csv';
+var PROXIES=[
   'https://corsproxy.io/?url='+encodeURIComponent(BASE_URL),
   'https://api.allorigins.win/raw?url='+encodeURIComponent(BASE_URL),
   BASE_URL
 ];
 
-const MESES_2026=["01-2026","02-2026","03-2026","04-2026","05-2026","06-2026","07-2026","08-2026","09-2026","10-2026","11-2026","12-2026"];
-const NM=["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-const NML=["","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-const CUOTA_STD={"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":60000,"07-2026":60000,"08-2026":60000,"09-2026":60000,"10-2026":60000,"11-2026":60000,"12-2026":60000};
+var MESES_2026=["01-2026","02-2026","03-2026","04-2026","05-2026","06-2026","07-2026","08-2026","09-2026","10-2026","11-2026","12-2026"];
+var NM=["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+var NML=["","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+var CUOTA_STD={"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":60000,"07-2026":60000,"08-2026":60000,"09-2026":60000,"10-2026":60000,"11-2026":60000,"12-2026":60000};
+var MES_INICIO="03-2026";
+var MES_ACTUAL="06-2026";
 
-const EXCLUIR=["PUJOL JUAN","DE ASSIS WALTER RAMON","DE LA TORRE MARCELO","ENCINA CARLOS RUBEN",
-  "FRETTE NICOLAS EDUARDO","GARCIA GUILLERMO CESAR","LEGUIZAMON VIRGILIO DANIEL","OJEDA DARIO",
-  "PAREDES CARLOS ALCIDES","PAZOS ROBERTO","RICARDO HECTOR GRACHOT","ROMERO VALDEZ DARIO",
-  "SEGUNDO RODRIGO CARLOS","TORRES LUCAS","YUNIS SERGIO HUGO","ZAMUDIO ROMAN FERNANDO","COLMAN HORACIO",
-  "GIMENEZ ALBERTO CESAR"];
-
-// Resumen fijo 2026 (de la tabla del Sheet)
-const RESUMEN={
+var RESUMEN={
   "ACEVEDO Fernando Martin":{"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":60000},
   "AGUIRRE Alfredo Raul":{"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":30000},
   "ESCOBAR Pablo Federico":{"01-2026":40000,"02-2026":23000},
@@ -180,81 +171,119 @@ const RESUMEN={
   "SOSA ORTIZ Guillermo Alejandro":{}
 };
 
-const GASTOS_2026=[
+var GASTOS_2026=[
   {d:"2026-03-07",imp:-55000},{d:"2026-03-14",imp:-55000},{d:"2026-03-21",imp:-55000},{d:"2026-03-28",imp:-55000},
   {d:"2026-04-04",imp:-55000},{d:"2026-04-11",imp:-55000},{d:"2026-04-18",imp:-55000},{d:"2026-04-25",imp:-55000},
   {d:"2026-05-02",imp:-55000},{d:"2026-05-09",imp:-55000},{d:"2026-05-16",imp:-55000},{d:"2026-05-23",imp:-55000},
   {d:"2026-06-06",imp:-55000},{d:"2026-06-13",imp:-55000},{d:"2026-06-20",imp:-55000}
 ];
 
-let MES_ACTUAL="06-2026";
-let chartBar=null,chartGastos=null;
-let PAGOS_DETALLE={}; // {jugador: [{fecha, mes, importe}]}
+var PAGOS_DETALLE={};
+var chartBar=null, chartGastos=null;
+
+function fmt(n){return'$'+Math.round(n).toLocaleString('es-AR');}
+function mesLabel(m){var p=m.split('-');return NM[parseInt(p[0])]+' '+p[1].substring(2);}
+function esPagado(val,std){return val>0&&val>=(std*0.5);}
 
 function parseFecha(str){
-  if(!str) return null;
+  if(!str) return'';
   str=str.trim();
-  const m1=str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if(m1) return m1[3]+'-'+m1[2].padStart(2,'0')+'-'+m1[1].padStart(2,'0');
+  var m=str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m) return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
   return str.substring(0,10);
 }
 function parseMes(str){
   if(!str) return null;
   str=str.trim();
-  const m=str.match(/^(\d{2})[-\/](\d{4})$/);
-  if(m) return m[1]+'-'+m[2];
-  return null;
+  var m=str.match(/^(\d{2})[-\/](\d{4})$/);
+  return m?m[1]+'-'+m[2]:null;
 }
-function parseImporte(str){
+function parseImp(str){
   if(!str) return 0;
   str=str.toString().replace(/\$/g,'').replace(/\./g,'').replace(/,/g,'.').replace(/\s/g,'');
-  const n=parseFloat(str);
+  var n=parseFloat(str);
   return isNaN(n)?0:n;
 }
 
 function procesarCSV(rows){
   PAGOS_DETALLE={};
-  rows.forEach(r=>{
-    const tipo=(r[1]||'').trim().toUpperCase();
+  rows.forEach(function(r){
+    var tipo=(r[1]||'').trim().toUpperCase();
     if(tipo!=='JUGADOR') return;
-    const jugador=(r[2]||'').trim();
-    if(!jugador) return;
-    const mes=parseMes(r[3]);
+    var jug=(r[2]||'').trim();
+    if(!jug) return;
+    var mes=parseMes(r[3]);
     if(!mes||!mes.endsWith('2026')) return;
-    const imp=parseImporte(r[4]);
+    var imp=parseImp(r[4]);
     if(imp<=0) return;
-    const fecha=parseFecha(r[0]);
-    if(!PAGOS_DETALLE[jugador]) PAGOS_DETALLE[jugador]=[];
-    PAGOS_DETALLE[jugador].push({fecha,mes,importe:imp});
+    var fecha=parseFecha(r[0]);
+    if(!PAGOS_DETALLE[jug]) PAGOS_DETALLE[jug]=[];
+    PAGOS_DETALLE[jug].push({fecha:fecha,mes:mes,importe:imp});
   });
 }
-function mesLabel(m){const p=m.split('-');return NM[parseInt(p[0])]+' '+p[1].substring(2);}
-function esPagado(val,std){return val>0&&val>=(std*0.5);}
 
 function dotClass(j,m){
-  const mmap=RESUMEN[j]||{};
-  const std=CUOTA_STD[m]||60000;
-  const primero=Object.keys(mmap).filter(x=>x.endsWith('2026')&&mmap[x]>0).sort()[0];
-  const inicio=primero||MES_INICIO_TEMPORADA;
-  const idxP=MESES_2026.indexOf(inicio);
-  const idxM=MESES_2026.indexOf(m);
+  var mmap=RESUMEN[j]||{};
+  var std=CUOTA_STD[m]||60000;
+  var primero=Object.keys(mmap).filter(function(x){return x.endsWith('2026')&&mmap[x]>0;}).sort()[0];
+  var inicio=primero||MES_INICIO;
+  var idxP=MESES_2026.indexOf(inicio);
+  var idxM=MESES_2026.indexOf(m);
   if(idxM<idxP) return'na';
   return esPagado(mmap[m]||0,std)?'ok':'mal';
 }
 
-const MES_INICIO_TEMPORADA="03-2026"; // primer mes de la temporada
-
 function tieneDeuda(j){
-  const mmap=RESUMEN[j]||{};
-  const primero=Object.keys(mmap).filter(x=>x.endsWith('2026')&&mmap[x]>0).sort()[0];
-  const inicio=primero||MES_INICIO_TEMPORADA;
-  const idxI=MESES_2026.indexOf(inicio);
-  const idxF=MESES_2026.indexOf(MES_ACTUAL);
-  return MESES_2026.slice(idxI,idxF+1).some(m=>!esPagado(mmap[m]||0,CUOTA_STD[m]||60000));
+  var mmap=RESUMEN[j]||{};
+  var primero=Object.keys(mmap).filter(function(x){return x.endsWith('2026')&&mmap[x]>0;}).sort()[0];
+  var inicio=primero||MES_INICIO;
+  var idxI=MESES_2026.indexOf(inicio);
+  var idxF=MESES_2026.indexOf(MES_ACTUAL);
+  return MESES_2026.slice(idxI,idxF+1).some(function(m){return!esPagado(mmap[m]||0,CUOTA_STD[m]||60000);});
 }
 
-function fmt(n){return'(){document.getElementById('modalBg').classList.remove('open');}
+function abrirModal(j){
+  var mmap=RESUMEN[j]||{};
+  var detalle=PAGOS_DETALLE[j]||[];
+  var mesesVis=MESES_2026.slice(0,MESES_2026.indexOf(MES_ACTUAL)+1);
 
+  // agrupar pagos por mes
+  var porMes={};
+  detalle.forEach(function(p){
+    if(!porMes[p.mes]) porMes[p.mes]=[];
+    porMes[p.mes].push(p);
+  });
+
+  document.getElementById('modalTitulo').textContent=j;
+  var html='';
+  var total=0;
+
+  mesesVis.forEach(function(m){
+    var cls=dotClass(j,m);
+    if(cls==='na') return;
+    var v=mmap[m]||0;
+    var icon=cls==='ok'?'✅':'❌';
+    var pagos=porMes[m]||[];
+    var fechaHtml='';
+    if(pagos.length>0){
+      fechaHtml='<div class="modal-fecha">'+pagos.map(function(p){return p.fecha+' — '+fmt(p.importe);}).join('<br>')+'</div>';
+    }
+    html+='<div class="modal-fila"><div class="modal-fila-top"><span>'+icon+' '+NML[parseInt(m.split('-')[0])]+' '+m.split('-')[1]+'</span><span style="font-weight:600">'+(v>0?fmt(v):'Sin pago')+'</span></div>'+fechaHtml+'</div>';
+    total+=v;
+  });
+
+  if(total>0){
+    html+='<div class="modal-fila total"><div class="modal-fila-top"><span>Total pagado 2026</span><span>'+fmt(total)+'</span></div></div>';
+  }
+  if(!html){
+    html='<p style="color:#aaa;font-size:13px;padding:8px 0">Sin pagos registrados en 2026</p>';
+  }
+
+  document.getElementById('modalCuerpo').innerHTML=html;
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function cerrarModal(){document.getElementById('modalBg').classList.remove('open');}
 document.getElementById('modalCerrar').addEventListener('click',cerrarModal);
 document.getElementById('modalBg').addEventListener('click',function(e){if(e.target===this)cerrarModal();});
 
@@ -266,135 +295,131 @@ function setTab(t){
 }
 
 function renderTodo(){
-  const jugadores=Object.keys(RESUMEN).sort();
-  const hoy=new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
-  const mesNombre=NML[parseInt(MES_ACTUAL.split('-')[0])]+' '+MES_ACTUAL.split('-')[1];
+  var jugadores=Object.keys(RESUMEN).sort();
+  var hoy=new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+  var mesNombre=NML[parseInt(MES_ACTUAL.split('-')[0])]+' '+MES_ACTUAL.split('-')[1];
   document.getElementById('fechaHeader').textContent='Estado al '+hoy+' · '+mesNombre;
 
-  // métricas
-  const totalIn=Object.values(RESUMEN).reduce((s,mm)=>s+Object.values(mm).reduce((a,v)=>a+v,0),0);
-  const totalOut=GASTOS_2026.reduce((s,r)=>s+r.imp,0);
-  const alDia=jugadores.filter(j=>!tieneDeuda(j)).length;
-  document.getElementById('metrics').innerHTML=`
-    <div class="metric"><div class="lbl">Recaudado 2026</div><div class="val">${fmt(totalIn)}</div></div>
-    <div class="metric"><div class="lbl">Gastos</div><div class="val" style="color:#f44336">${fmt(Math.abs(totalOut))}</div></div>
-    <div class="metric"><div class="lbl">Balance</div><div class="val" style="color:${totalIn+totalOut>=0?'#4caf50':'#f44336'}">${fmt(totalIn+totalOut)}</div></div>
-    <div class="metric"><div class="lbl">Al día / Total</div><div class="val">${alDia} / ${jugadores.length}</div></div>
-  `;
+  var totalIn=jugadores.reduce(function(s,j){return s+Object.values(RESUMEN[j]).reduce(function(a,v){return a+v;},0);},0);
+  var totalOut=GASTOS_2026.reduce(function(s,r){return s+r.imp;},0);
+  var alDia=jugadores.filter(function(j){return!tieneDeuda(j);}).length;
 
-  // charts
-  const mesesVis=MESES_2026.slice(0,MESES_2026.indexOf(MES_ACTUAL)+1);
-  const ingMap={};
-  jugadores.forEach(j=>{mesesVis.forEach(m=>{ingMap[m]=(ingMap[m]||0)+(RESUMEN[j][m]||0);});});
+  document.getElementById('metrics').innerHTML=
+    '<div class="metric"><div class="lbl">Recaudado 2026</div><div class="val">'+fmt(totalIn)+'</div></div>'+
+    '<div class="metric"><div class="lbl">Gastos</div><div class="val" style="color:#f44336">'+fmt(Math.abs(totalOut))+'</div></div>'+
+    '<div class="metric"><div class="lbl">Balance</div><div class="val" style="color:'+(totalIn+totalOut>=0?'#4caf50':'#f44336')+'">'+fmt(totalIn+totalOut)+'</div></div>'+
+    '<div class="metric"><div class="lbl">Al día / Total</div><div class="val">'+alDia+' / '+jugadores.length+'</div></div>';
+
+  var mesesVis=MESES_2026.slice(0,MESES_2026.indexOf(MES_ACTUAL)+1);
+  var ingMap={};
+  jugadores.forEach(function(j){mesesVis.forEach(function(m){ingMap[m]=(ingMap[m]||0)+(RESUMEN[j][m]||0);});});
+
   if(chartBar) chartBar.destroy();
   chartBar=new Chart(document.getElementById('chartBar'),{
     type:'bar',
-    data:{labels:mesesVis.map(mesLabel),datasets:[{data:mesesVis.map(m=>ingMap[m]||0),backgroundColor:'#f5c500',borderRadius:3}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>fmt(v.raw)}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{ticks:{callback:v=>'$'+Math.round(v/1000)+'k'},grid:{color:'#f0f0ec'}}}}
+    data:{labels:mesesVis.map(mesLabel),datasets:[{data:mesesVis.map(function(m){return ingMap[m]||0;}),backgroundColor:'#f5c500',borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(v){return fmt(v.raw);}}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{ticks:{callback:function(v){return'$'+Math.round(v/1000)+'k';}},grid:{color:'#f0f0ec'}}}}
   });
 
-  const gastosMap={};
-  GASTOS_2026.forEach(r=>{const k=r.d.substring(0,7);gastosMap[k]=(gastosMap[k]||0)+Math.abs(r.imp);});
-  const gM=Object.keys(gastosMap).sort();
+  var gastosMap={};
+  GASTOS_2026.forEach(function(r){var k=r.d.substring(0,7);gastosMap[k]=(gastosMap[k]||0)+Math.abs(r.imp);});
+  var gM=Object.keys(gastosMap).sort();
   if(chartGastos) chartGastos.destroy();
   chartGastos=new Chart(document.getElementById('chartGastos'),{
     type:'bar',
-    data:{labels:gM.map(m=>{const p=m.split('-');return NM[parseInt(p[1])]+' '+p[0].substring(2);}),datasets:[{data:gM.map(m=>gastosMap[m]),backgroundColor:'#e53935',borderRadius:3}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>fmt(v.raw)}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{ticks:{callback:v=>'$'+Math.round(v/1000)+'k'},grid:{color:'#f0f0ec'}}}}
+    data:{labels:gM.map(function(m){var p=m.split('-');return NM[parseInt(p[1])]+' '+p[0].substring(2);}),datasets:[{data:gM.map(function(m){return gastosMap[m];}),backgroundColor:'#e53935',borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(v){return fmt(v.raw);}}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{ticks:{callback:function(v){return'$'+Math.round(v/1000)+'k';}},grid:{color:'#f0f0ec'}}}}
   });
 
   // semáforo
-  let html='<thead><tr><th class="left">Jugador</th>';
-  mesesVis.forEach(m=>{html+='<th>'+NM[parseInt(m.split('-')[0])]+'</th>';});
-  html+='<th>Estado</th></tr></thead><tbody>';
-  jugadores.forEach(j=>{
-    html+='<tr><td class="name" onclick="abrirModal(\''+j.replace(/'/g,"\\'")+'\')" title="Ver pagos de '+j+'">'+j+'</td>';
-    let deudas=0;
-    mesesVis.forEach(m=>{const c=dotClass(j,m);if(c==='mal')deudas++;html+='<td><span class="dot '+c+'"></span></td>';});
-    html+='<td style="font-size:11px;font-weight:700;color:'+(deudas===0?'#2e7d32':'#c62828')+';white-space:nowrap">'+(deudas===0?'✅ Al día':'⚠️ '+deudas+' mes'+(deudas>1?'es':''))+'</td></tr>';
+  var sfHtml='<thead><tr><th class="left">Jugador</th>';
+  mesesVis.forEach(function(m){sfHtml+='<th>'+NM[parseInt(m.split('-')[0])]+'</th>';});
+  sfHtml+='<th>Estado</th></tr></thead><tbody>';
+  jugadores.forEach(function(j){
+    var jEsc=j.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    sfHtml+='<tr><td class="name" onclick="abrirModal(\''+jEsc+'\')">'+j+'</td>';
+    var deudas=0;
+    mesesVis.forEach(function(m){var c=dotClass(j,m);if(c==='mal')deudas++;sfHtml+='<td><span class="dot '+c+'"></span></td>';});
+    sfHtml+='<td style="font-size:11px;font-weight:700;color:'+(deudas===0?'#2e7d32':'#c62828')+';white-space:nowrap">'+(deudas===0?'✅ Al día':'⚠️ '+deudas+' mes'+(deudas>1?'es':''))+'</td></tr>';
   });
-  html+='</tbody>';
-  document.getElementById('sfTable').innerHTML=html;
+  sfHtml+='</tbody>';
+  document.getElementById('sfTable').innerHTML=sfHtml;
 
   // mensaje
-  const deudoresInfo=[];
-  jugadores.forEach(j=>{
-    const mmap=RESUMEN[j]||{};
-    const primero=Object.keys(mmap).filter(x=>x.endsWith('2026')&&mmap[x]>0).sort()[0];
-    const inicio=primero||MES_INICIO_TEMPORADA;
-    const idxI=MESES_2026.indexOf(inicio);
-    const idxF=MESES_2026.indexOf(MES_ACTUAL);
-    const deberia=MESES_2026.slice(idxI,idxF+1);
-    const mesesDeuda=deberia.filter(m=>!esPagado(mmap[m]||0,CUOTA_STD[m]||60000));
+  var deudores=[];
+  jugadores.forEach(function(j){
+    var mmap=RESUMEN[j]||{};
+    var primero=Object.keys(mmap).filter(function(x){return x.endsWith('2026')&&mmap[x]>0;}).sort()[0];
+    var inicio=primero||MES_INICIO;
+    var idxI=MESES_2026.indexOf(inicio);
+    var idxF=MESES_2026.indexOf(MES_ACTUAL);
+    var deberia=MESES_2026.slice(idxI,idxF+1);
+    var mesesDeuda=deberia.filter(function(m){return!esPagado(mmap[m]||0,CUOTA_STD[m]||60000);});
     if(mesesDeuda.length>0){
-      const lista=mesesDeuda.map(m=>NML[parseInt(m.split('-')[0])]).join(', ');
-      const total=mesesDeuda.reduce((s,m)=>s+(CUOTA_STD[m]||60000)-(mmap[m]||0),0);
-      deudoresInfo.push({j,lista,total});
+      var lista=mesesDeuda.map(function(m){return NML[parseInt(m.split('-')[0])];}).join(', ');
+      var total=mesesDeuda.reduce(function(s,m){return s+(CUOTA_STD[m]||60000)-(mmap[m]||0);},0);
+      deudores.push({j:j,lista:lista,total:total});
     }
   });
-  let msg='';
-  if(deudoresInfo.length===0){
+
+  var hoyStr=new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+  var msg='';
+  if(deudores.length===0){
     msg='✅ ¡Todos al día!';
   } else {
-    msg='⚽ *VETERANOS A — ECONÓMICAS*\n📋 Cuotas pendientes al '+hoy+'\n━━━━━━━━━━━━━━━━━━━━\n\n';
-    deudoresInfo.forEach((d,i)=>{
-      msg+=(i+1)+'. *'+d.j+'*\n';
-      msg+='   • '+d.lista+'\n';
-      if(d.total>0) msg+='   💰 '+fmt(d.total)+'\n';
-      msg+='\n';
+    msg='⚽ *VETERANOS A — ECONÓMICAS*\n📋 Cuotas pendientes al '+hoyStr+'\n━━━━━━━━━━━━━━━━━━━━\n\n';
+    deudores.forEach(function(d,i){
+      msg+=(i+1)+'. *'+d.j+'*\n   • '+d.lista+'\n   💰 '+fmt(d.total)+'\n\n';
     });
-    msg+='━━━━━━━━━━━━━━━━━━━━\n👥 '+deudoresInfo.length+' jugador'+(deudoresInfo.length>1?'es':'')+' con deuda';
+    msg+='━━━━━━━━━━━━━━━━━━━━\n👥 '+deudores.length+' jugador'+(deudores.length>1?'es':'')+' con deuda';
   }
   document.getElementById('msgBox').textContent=msg;
   window._msg=msg;
 
   // vista pública
-  const conDeuda=jugadores.filter(j=>tieneDeuda(j)).length;
-  document.getElementById('pubResumen').innerHTML=`
-    <div class="big">${alDia} / ${jugadores.length}</div>
-    <div class="sub">jugadores al día en ${mesNombre}</div>
-    ${conDeuda>0?'<div style="color:#f44336;font-weight:700;margin-top:6px;font-size:13px">⚠️ '+conDeuda+' con cuotas pendientes</div>':'<div style="color:#4caf50;font-weight:700;margin-top:6px;font-size:13px">✅ ¡Todos al día!</div>'}
-  `;
+  var conDeuda=jugadores.filter(function(j){return tieneDeuda(j);}).length;
+  document.getElementById('pubResumen').innerHTML=
+    '<div class="big">'+alDia+' / '+jugadores.length+'</div>'+
+    '<div class="sub">jugadores al día en '+mesNombre+'</div>'+
+    (conDeuda>0?'<div style="color:#f44336;font-weight:700;margin-top:6px;font-size:13px">⚠️ '+conDeuda+' con cuotas pendientes</div>':'<div style="color:#4caf50;font-weight:700;margin-top:6px;font-size:13px">✅ ¡Todos al día!</div>');
 
-  const sorted=[...jugadores].sort((a,b)=>{
-    const da=tieneDeuda(a),db=tieneDeuda(b);
+  var sorted=jugadores.slice().sort(function(a,b){
+    var da=tieneDeuda(a),db=tieneDeuda(b);
     if(da&&!db) return 1; if(!da&&db) return -1; return a.localeCompare(b);
   });
-  let pubHtml='';
-  sorted.forEach(j=>{
-    const mmap=RESUMEN[j]||{};
-    const td=tieneDeuda(j);
-    const primero=Object.keys(mmap).filter(x=>x.endsWith('2026')&&mmap[x]>0).sort()[0];
-    const inicio=primero||MES_INICIO_TEMPORADA;
-    const idxI=MESES_2026.indexOf(inicio);
-    const idxF=MESES_2026.indexOf(MES_ACTUAL);
-    const deberia=MESES_2026.slice(idxI,idxF+1);
-    const mesesDeuda=deberia.filter(m=>!esPagado(mmap[m]||0,CUOTA_STD[m]||60000));
-    let chips='';
-    mesesVis.forEach(m=>{
-      const c=dotClass(j,m);
+  var pubHtml='';
+  sorted.forEach(function(j){
+    var mmap=RESUMEN[j]||{};
+    var td=tieneDeuda(j);
+    var primero=Object.keys(mmap).filter(function(x){return x.endsWith('2026')&&mmap[x]>0;}).sort()[0];
+    var inicio=primero||MES_INICIO;
+    var idxI=MESES_2026.indexOf(inicio);
+    var idxF=MESES_2026.indexOf(MES_ACTUAL);
+    var deberia=MESES_2026.slice(idxI,idxF+1);
+    var mesesDeuda=deberia.filter(function(m){return!esPagado(mmap[m]||0,CUOTA_STD[m]||60000);});
+    var chips='';
+    mesesVis.forEach(function(m){
+      var c=dotClass(j,m);
       if(c==='na') return;
       chips+='<span class="chip '+(c==='ok'?'ok':'mal')+'">'+NM[parseInt(m.split('-')[0])]+'</span>';
     });
-    pubHtml+='<div class="pub-card"><div class="pub-top"><span class="pub-nombre" onclick="abrirModal(\''+j.replace(/'/g,"\\'")+'\')">'+j+'</span><span class="pub-badge '+(td?'mal':'ok')+'">'+(td?'Adeuda '+mesesDeuda.length+' mes'+(mesesDeuda.length>1?'es':''):'Al día ✓')+'</span></div><div class="pub-chips">'+chips+'</div></div>';
+    var jEsc=j.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    pubHtml+='<div class="pub-card"><div class="pub-top"><span class="pub-nombre" onclick="abrirModal(\''+jEsc+'\')">'+j+'</span><span class="pub-badge '+(td?'mal':'ok')+'">'+(td?'Adeuda '+mesesDeuda.length+' mes'+(mesesDeuda.length>1?'es':''):'Al día ✓')+'</span></div><div class="pub-chips">'+chips+'</div></div>';
   });
   document.getElementById('pubCards').innerHTML=pubHtml;
 }
 
 function copiar(){
   if(!window._msg) return;
-  navigator.clipboard.writeText(window._msg).then(()=>{
-    const ok=document.getElementById('copyOk');
+  navigator.clipboard.writeText(window._msg).then(function(){
+    var ok=document.getElementById('copyOk');
     ok.style.display='inline';
-    setTimeout(()=>{ok.style.display='none';},2500);
+    setTimeout(function(){ok.style.display='none';},2500);
   });
 }
 
-// Cargar CSV
 function cargarConProxy(idx){
   if(idx>=PROXIES.length){
-    document.getElementById('loader').innerHTML='<p style="color:#c62828">❌ Error al cargar datos del Sheet.</p>';
-    // igual renderizar con datos fijos
     document.getElementById('loader').style.display='none';
     document.getElementById('content').style.display='';
     renderTodo();
@@ -412,208 +437,7 @@ function cargarConProxy(idx){
     error:function(){cargarConProxy(idx+1);}
   });
 }
-cargarConProxy(0);
-</script>
-</body>
-</html>
-+Math.round(n).toLocaleString('es-AR')}
 
-function abrirModal(j){
-  const mmap=RESUMEN[j]||{};
-  const detalle=PAGOS_DETALLE[j]||[];
-  const mesesVis=MESES_2026.slice(0,MESES_2026.indexOf(MES_ACTUAL)+1);
-  document.getElementById('modalTitulo').textContent=j;
-  let html='';let total=0;
-
-  // agrupar detalle por mes
-  const detallePorMes={};
-  detalle.forEach(p=>{
-    if(!detallePorMes[p.mes]) detallePorMes[p.mes]=[];
-    detallePorMes[p.mes].push(p);
-  });
-
-  mesesVis.forEach(m=>{
-    const cls=dotClass(j,m);
-    if(cls==='na') return;
-    const v=mmap[m]||0;
-    const icon=cls==='ok'?'✅':'❌';
-    const pagos=detallePorMes[m]||[];
-    let fechaStr='';
-    if(pagos.length>0){
-      fechaStr='<div style="font-size:11px;color:#888;margin-top:2px">'+
-        pagos.map(p=>p.fecha+' — '+fmt(p.importe)).join('<br>')+'</div>';
-    }
-    html+='<div class="modal-fila" style="flex-direction:column;align-items:flex-start;gap:2px">'+
-      '<div style="display:flex;justify-content:space-between;width:100%">'+
-      '<span class="modal-mes">'+icon+' '+NML[parseInt(m.split('-')[0])]+' '+m.split('-')[1]+'</span>'+
-      '<span class="modal-val">'+(v>0?fmt(v):'Sin pago')+'</span></div>'+
-      fechaStr+'</div>';
-    total+=v;
-  });
-  if(total>0) html+='<div class="modal-fila total"><span>Total pagado 2026</span><span class="modal-val">'+fmt(total)+'</span></div>';
-  if(!html) html='<p style="color:#aaa;font-size:13px;padding:8px 0">Sin pagos registrados en 2026</p>';
-  document.getElementById('modalCuerpo').innerHTML=html;
-  document.getElementById('modalBg').classList.add('open');
-}
-
-function cerrarModal(){document.getElementById('modalBg').classList.remove('open');}
-
-document.getElementById('modalCerrar').addEventListener('click',cerrarModal);
-document.getElementById('modalBg').addEventListener('click',function(e){if(e.target===this)cerrarModal();});
-
-function setTab(t){
-  document.getElementById('tabBtnPub').classList.toggle('active',t==='pub');
-  document.getElementById('tabBtnAdmin').classList.toggle('active',t==='admin');
-  document.getElementById('tabPub').style.display=t==='pub'?'':'none';
-  document.getElementById('tabAdmin').style.display=t==='admin'?'':'none';
-}
-
-function renderTodo(){
-  const jugadores=Object.keys(RESUMEN).sort();
-  const hoy=new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
-  const mesNombre=NML[parseInt(MES_ACTUAL.split('-')[0])]+' '+MES_ACTUAL.split('-')[1];
-  document.getElementById('fechaHeader').textContent='Estado al '+hoy+' · '+mesNombre;
-
-  // métricas
-  const totalIn=Object.values(RESUMEN).reduce((s,mm)=>s+Object.values(mm).reduce((a,v)=>a+v,0),0);
-  const totalOut=GASTOS_2026.reduce((s,r)=>s+r.imp,0);
-  const alDia=jugadores.filter(j=>!tieneDeuda(j)).length;
-  document.getElementById('metrics').innerHTML=`
-    <div class="metric"><div class="lbl">Recaudado 2026</div><div class="val">${fmt(totalIn)}</div></div>
-    <div class="metric"><div class="lbl">Gastos</div><div class="val" style="color:#f44336">${fmt(Math.abs(totalOut))}</div></div>
-    <div class="metric"><div class="lbl">Balance</div><div class="val" style="color:${totalIn+totalOut>=0?'#4caf50':'#f44336'}">${fmt(totalIn+totalOut)}</div></div>
-    <div class="metric"><div class="lbl">Al día / Total</div><div class="val">${alDia} / ${jugadores.length}</div></div>
-  `;
-
-  // charts
-  const mesesVis=MESES_2026.slice(0,MESES_2026.indexOf(MES_ACTUAL)+1);
-  const ingMap={};
-  jugadores.forEach(j=>{mesesVis.forEach(m=>{ingMap[m]=(ingMap[m]||0)+(RESUMEN[j][m]||0);});});
-  if(chartBar) chartBar.destroy();
-  chartBar=new Chart(document.getElementById('chartBar'),{
-    type:'bar',
-    data:{labels:mesesVis.map(mesLabel),datasets:[{data:mesesVis.map(m=>ingMap[m]||0),backgroundColor:'#f5c500',borderRadius:3}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>fmt(v.raw)}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{ticks:{callback:v=>'$'+Math.round(v/1000)+'k'},grid:{color:'#f0f0ec'}}}}
-  });
-
-  const gastosMap={};
-  GASTOS_2026.forEach(r=>{const k=r.d.substring(0,7);gastosMap[k]=(gastosMap[k]||0)+Math.abs(r.imp);});
-  const gM=Object.keys(gastosMap).sort();
-  if(chartGastos) chartGastos.destroy();
-  chartGastos=new Chart(document.getElementById('chartGastos'),{
-    type:'bar',
-    data:{labels:gM.map(m=>{const p=m.split('-');return NM[parseInt(p[1])]+' '+p[0].substring(2);}),datasets:[{data:gM.map(m=>gastosMap[m]),backgroundColor:'#e53935',borderRadius:3}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>fmt(v.raw)}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{ticks:{callback:v=>'$'+Math.round(v/1000)+'k'},grid:{color:'#f0f0ec'}}}}
-  });
-
-  // semáforo
-  let html='<thead><tr><th class="left">Jugador</th>';
-  mesesVis.forEach(m=>{html+='<th>'+NM[parseInt(m.split('-')[0])]+'</th>';});
-  html+='<th>Estado</th></tr></thead><tbody>';
-  jugadores.forEach(j=>{
-    html+='<tr><td class="name" onclick="abrirModal(\''+j.replace(/'/g,"\\'")+'\')" title="Ver pagos de '+j+'">'+j+'</td>';
-    let deudas=0;
-    mesesVis.forEach(m=>{const c=dotClass(j,m);if(c==='mal')deudas++;html+='<td><span class="dot '+c+'"></span></td>';});
-    html+='<td style="font-size:11px;font-weight:700;color:'+(deudas===0?'#2e7d32':'#c62828')+';white-space:nowrap">'+(deudas===0?'✅ Al día':'⚠️ '+deudas+' mes'+(deudas>1?'es':''))+'</td></tr>';
-  });
-  html+='</tbody>';
-  document.getElementById('sfTable').innerHTML=html;
-
-  // mensaje
-  const deudoresInfo=[];
-  jugadores.forEach(j=>{
-    const mmap=RESUMEN[j]||{};
-    const primero=Object.keys(mmap).filter(x=>x.endsWith('2026')&&mmap[x]>0).sort()[0];
-    const inicio=primero||MES_INICIO_TEMPORADA;
-    const idxI=MESES_2026.indexOf(inicio);
-    const idxF=MESES_2026.indexOf(MES_ACTUAL);
-    const deberia=MESES_2026.slice(idxI,idxF+1);
-    const mesesDeuda=deberia.filter(m=>!esPagado(mmap[m]||0,CUOTA_STD[m]||60000));
-    if(mesesDeuda.length>0){
-      const lista=mesesDeuda.map(m=>NML[parseInt(m.split('-')[0])]).join(', ');
-      const total=mesesDeuda.reduce((s,m)=>s+(CUOTA_STD[m]||60000)-(mmap[m]||0),0);
-      deudoresInfo.push({j,lista,total});
-    }
-  });
-  let msg='';
-  if(deudoresInfo.length===0){
-    msg='✅ ¡Todos al día!';
-  } else {
-    msg='⚽ *VETERANOS A — ECONÓMICAS*\n📋 Cuotas pendientes al '+hoy+'\n━━━━━━━━━━━━━━━━━━━━\n\n';
-    deudoresInfo.forEach((d,i)=>{
-      msg+=(i+1)+'. *'+d.j+'*\n';
-      msg+='   • '+d.lista+'\n';
-      if(d.total>0) msg+='   💰 '+fmt(d.total)+'\n';
-      msg+='\n';
-    });
-    msg+='━━━━━━━━━━━━━━━━━━━━\n👥 '+deudoresInfo.length+' jugador'+(deudoresInfo.length>1?'es':'')+' con deuda';
-  }
-  document.getElementById('msgBox').textContent=msg;
-  window._msg=msg;
-
-  // vista pública
-  const conDeuda=jugadores.filter(j=>tieneDeuda(j)).length;
-  document.getElementById('pubResumen').innerHTML=`
-    <div class="big">${alDia} / ${jugadores.length}</div>
-    <div class="sub">jugadores al día en ${mesNombre}</div>
-    ${conDeuda>0?'<div style="color:#f44336;font-weight:700;margin-top:6px;font-size:13px">⚠️ '+conDeuda+' con cuotas pendientes</div>':'<div style="color:#4caf50;font-weight:700;margin-top:6px;font-size:13px">✅ ¡Todos al día!</div>'}
-  `;
-
-  const sorted=[...jugadores].sort((a,b)=>{
-    const da=tieneDeuda(a),db=tieneDeuda(b);
-    if(da&&!db) return 1; if(!da&&db) return -1; return a.localeCompare(b);
-  });
-  let pubHtml='';
-  sorted.forEach(j=>{
-    const mmap=RESUMEN[j]||{};
-    const td=tieneDeuda(j);
-    const primero=Object.keys(mmap).filter(x=>x.endsWith('2026')&&mmap[x]>0).sort()[0];
-    const inicio=primero||MES_INICIO_TEMPORADA;
-    const idxI=MESES_2026.indexOf(inicio);
-    const idxF=MESES_2026.indexOf(MES_ACTUAL);
-    const deberia=MESES_2026.slice(idxI,idxF+1);
-    const mesesDeuda=deberia.filter(m=>!esPagado(mmap[m]||0,CUOTA_STD[m]||60000));
-    let chips='';
-    mesesVis.forEach(m=>{
-      const c=dotClass(j,m);
-      if(c==='na') return;
-      chips+='<span class="chip '+(c==='ok'?'ok':'mal')+'">'+NM[parseInt(m.split('-')[0])]+'</span>';
-    });
-    pubHtml+='<div class="pub-card"><div class="pub-top"><span class="pub-nombre" onclick="abrirModal(\''+j.replace(/'/g,"\\'")+'\')">'+j+'</span><span class="pub-badge '+(td?'mal':'ok')+'">'+(td?'Adeuda '+mesesDeuda.length+' mes'+(mesesDeuda.length>1?'es':''):'Al día ✓')+'</span></div><div class="pub-chips">'+chips+'</div></div>';
-  });
-  document.getElementById('pubCards').innerHTML=pubHtml;
-}
-
-function copiar(){
-  if(!window._msg) return;
-  navigator.clipboard.writeText(window._msg).then(()=>{
-    const ok=document.getElementById('copyOk');
-    ok.style.display='inline';
-    setTimeout(()=>{ok.style.display='none';},2500);
-  });
-}
-
-// Cargar CSV
-function cargarConProxy(idx){
-  if(idx>=PROXIES.length){
-    document.getElementById('loader').innerHTML='<p style="color:#c62828">❌ Error al cargar datos del Sheet.</p>';
-    // igual renderizar con datos fijos
-    document.getElementById('loader').style.display='none';
-    document.getElementById('content').style.display='';
-    renderTodo();
-    return;
-  }
-  Papa.parse(PROXIES[idx],{
-    download:true,skipEmptyLines:true,
-    complete:function(r){
-      if(!r.data||r.data.length<2){cargarConProxy(idx+1);return;}
-      document.getElementById('loader').style.display='none';
-      document.getElementById('content').style.display='';
-      renderTodo();
-    },
-    error:function(){cargarConProxy(idx+1);}
-  });
-}
 cargarConProxy(0);
 </script>
 </body>
