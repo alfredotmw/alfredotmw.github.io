@@ -151,6 +151,7 @@ const EXCLUIR=[
 
 let RESUMEN={};
 let GASTOS=[];
+let RAW_ALL=[];
 let MES_ACTUAL="06-2026";
 let chartBar=null,chartGastos=null;
 
@@ -204,6 +205,7 @@ function procesarDatos(rows){
     if(tipo==='JUGADOR'){
       const jugador=(r[2]||'').trim();
       const jUp=jugador.toUpperCase().trim();
+      const fecha=parseFecha(r[0])||'';
       if(!jugador||EXCLUIR.includes(jUp)) return;
       const mes=parseMes(r[3]);
       if(!mes||!mes.endsWith('2026')) return; // solo cuotas 2026
@@ -345,9 +347,9 @@ function renderTodo(){
       if(c==='na') return;
       chips+=`<span class="chip ${c==='ok'?'ok':'mal'}">${NM[parseInt(m.split('-')[0])]}</span>`;
     });
-    pubHtml+=`<div class="pub-card">
+    pubHtml+=`<div class="pub-card" onclick="abrirModal('${j.replace(/'/g,"\\'")}') " style="cursor:pointer">
       <div class="pub-top">
-        <span class="pub-nombre">${j}</span>
+        <span class="pub-nombre">${j} <span style="font-size:10px;color:#aaa">▶ ver pagos</span></span>
         <span class="pub-badge ${td?'mal':'ok'}">${td?`Adeuda ${mesesDeuda.length} mes${mesesDeuda.length>1?'es':''}`:'Al día ✓'}</span>
       </div>
       <div class="pub-chips">${chips}</div>
@@ -362,7 +364,54 @@ function setTab(t){
   document.getElementById('tabAdmin').style.display=t==='admin'?'':'none';
 }
 
-function copiar(){
+function abrirModal(jugador){
+  const mmap=RESUMEN[jugador]||{};
+  const mesesVis=MESES_2026.slice(0,MESES_2026.indexOf(MES_ACTUAL)+1);
+  const primerMes=Object.keys(mmap).filter(m=>m.endsWith('2026')&&mmap[m]>0).sort()[0];
+  const idxI=primerMes?MESES_2026.indexOf(primerMes):0;
+  const idxF=MESES_2026.indexOf(MES_ACTUAL);
+  const deberia=primerMes?MESES_2026.slice(idxI,idxF+1):[];
+
+  // buscar fechas reales de pago en RAW_ALL
+  const pagosJugador=RAW_ALL.filter(r=>r.jugador&&r.jugador.toUpperCase().trim()===jugador.toUpperCase().trim()&&r.mes&&r.mes.endsWith('2026')&&r.importe>0);
+
+  document.getElementById('modalNombre').textContent=jugador;
+  const td=tieneDeuda(jugador);
+  document.getElementById('modalEstado').innerHTML=td?'<span style="color:#c62828;font-weight:600">⚠️ Con cuotas pendientes</span>':'<span style="color:#2e7d32;font-weight:600">✅ Al día</span>';
+
+  let html='';
+  mesesVis.forEach(m=>{
+    const std=CUOTA_STD[m]||60000;
+    const val=mmap[m]||0;
+    const pagado=esPagado(val,std);
+    const enDeberia=deberia.includes(m);
+    if(!enDeberia&&!pagado) return;
+    const pagosFecha=pagosJugador.filter(r=>r.mes===m);
+    const mesNom=NML[parseInt(m.split('-')[0])]+' '+m.split('-')[1];
+    const estadoColor=!enDeberia?'#999':pagado?'#2e7d32':'#c62828';
+    const estadoIcon=!enDeberia?'—':pagado?'✅':'❌';
+    html+=`<div style="border-bottom:0.5px solid #f0f0ec;padding:8px 0">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:600;font-size:13px">${estadoIcon} ${mesNom}</span>
+        <span style="font-size:12px;color:${estadoColor};font-weight:500">${val>0?fmt(val):'Sin pago'}</span>
+      </div>`;
+    if(pagosFecha.length>0){
+      pagosFecha.forEach(p=>{
+        html+=`<div style="font-size:11px;color:#888;margin-top:2px;padding-left:20px">📅 ${p.fecha} — ${fmt(p.importe)}</div>`;
+      });
+    }
+    html+='</div>';
+  });
+
+  if(!html) html='<p style="color:#999;font-size:13px;text-align:center;padding:20px 0">Sin registros de pago en 2026</p>';
+  document.getElementById('modalContenido').innerHTML=html;
+  document.getElementById('modal').style.display='flex';
+}
+
+function cerrarModal(){
+  document.getElementById('modal').style.display='none';
+}
+document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)cerrarModal();});
   if(!window._msg) return;
   navigator.clipboard.writeText(window._msg).then(()=>{
     const ok=document.getElementById('copyOk');
