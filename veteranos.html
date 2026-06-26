@@ -6,67 +6,70 @@
 <title>Veteranos A — Cuotas Económicas</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,sans-serif;background:#f7f7f4;color:#1a1a1a;font-size:14px}
+:root{--negro:#1a1a1a;--amarillo:#f5c500;--amarillo-claro:#fff8d6;--amarillo-borde:#e6b800;--blanco:#ffffff;--gris-fondo:#f2f2f0;--gris-borde:#e0ddd5}
+body{font-family:system-ui,sans-serif;background:var(--gris-fondo);color:var(--negro);font-size:14px}
 .container{max-width:700px;margin:0 auto;padding:16px}
 
 /* header */
-.header{text-align:center;padding:20px 0 14px;margin-bottom:16px}
-.header h1{font-size:20px;font-weight:600}
-.header p{font-size:12px;color:#888;margin-top:4px}
+.header{text-align:center;padding:24px 16px 16px;margin-bottom:16px;background:var(--negro);border-radius:14px;color:var(--blanco)}
+.header h1{font-size:20px;font-weight:700;color:var(--amarillo);margin-top:8px}
+.header p{font-size:12px;color:#aaa;margin-top:4px}
 
 /* tabs */
-.tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid #e0e0d8}
-.tab{flex:1;padding:9px 0;cursor:pointer;font-size:13px;text-align:center;border-bottom:2px solid transparent;margin-bottom:-2px;color:#888;font-weight:500;transition:color .2s}
-.tab.active{border-bottom-color:#2a78d6;color:#2a78d6}
+.tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:3px solid var(--amarillo)}
+.tab{flex:1;padding:9px 0;cursor:pointer;font-size:13px;text-align:center;border-bottom:3px solid transparent;margin-bottom:-3px;color:#888;font-weight:600;transition:color .2s}
+.tab.active{border-bottom-color:var(--negro);color:var(--negro);background:var(--amarillo-claro)}
 
 /* metrics */
 .grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
-.metric{background:#fff;border:0.5px solid #e8e8e0;border-radius:10px;padding:12px 14px}
-.metric .lbl{font-size:11px;color:#999;margin-bottom:3px}
-.metric .val{font-size:20px;font-weight:600}
+.metric{background:var(--negro);border-radius:10px;padding:12px 14px}
+.metric .lbl{font-size:11px;color:#aaa;margin-bottom:3px}
+.metric .val{font-size:20px;font-weight:700;color:var(--amarillo)}
 
 /* card */
-.card{background:#fff;border:0.5px solid #e8e8e0;border-radius:12px;padding:16px;margin-bottom:14px}
-.card h3{font-size:13px;font-weight:600;color:#555;margin-bottom:12px;text-transform:uppercase;letter-spacing:.4px}
+.card{background:var(--blanco);border:1px solid var(--gris-borde);border-radius:12px;padding:16px;margin-bottom:14px}
+.card h3{font-size:12px;font-weight:700;color:var(--negro);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px;border-left:4px solid var(--amarillo);padding-left:8px}
 
 /* semáforo */
 .sf-wrap{overflow-x:auto}
 .sf-table{width:100%;border-collapse:collapse;font-size:12px;min-width:400px}
-.sf-table th{padding:5px 4px;text-align:center;font-weight:500;color:#999;font-size:10px;border-bottom:1px solid #f0f0ec;white-space:nowrap}
+.sf-table th{padding:5px 4px;text-align:center;font-weight:700;color:var(--negro);font-size:10px;background:var(--amarillo-claro);border-bottom:2px solid var(--amarillo);white-space:nowrap}
 .sf-table th.left{text-align:left;padding-left:6px}
-.sf-table td{padding:5px 3px;text-align:center;border-bottom:0.5px solid #f5f5f2}
-.sf-table td.name{text-align:left;padding-left:6px;font-size:12px;font-weight:500;white-space:nowrap}
+.sf-table td{padding:5px 3px;text-align:center;border-bottom:0.5px solid #f0f0ec}
+.sf-table tr:hover td{background:#fffbea}
+.sf-table td.name{text-align:left;padding-left:6px;font-size:12px;font-weight:600;white-space:nowrap}
 .dot{width:16px;height:16px;border-radius:50%;display:inline-block;vertical-align:middle}
 .dot.ok{background:#4caf50}
 .dot.mal{background:#f44336}
-.dot.na{background:#e8e8e0}
-.legend{display:flex;gap:14px;margin-bottom:10px;font-size:11px;color:#777;flex-wrap:wrap}
+.dot.na{background:#ddd}
+.legend{display:flex;gap:14px;margin-bottom:10px;font-size:11px;color:#666;flex-wrap:wrap}
 .legend span{display:flex;align-items:center;gap:5px}
 
 /* jugador cards (vista pública) */
-.pub-card{background:#fff;border:0.5px solid #e8e8e0;border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.pub-card{background:var(--blanco);border:1px solid var(--gris-borde);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.pub-card:hover{border-color:var(--amarillo);background:#fffdf0}
 .pub-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.pub-nombre{font-weight:600;font-size:13px}
-.pub-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500}
+.pub-nombre{font-weight:700;font-size:13px}
+.pub-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600}
 .pub-badge.ok{background:#e8f5e9;color:#2e7d32}
 .pub-badge.mal{background:#ffebee;color:#c62828}
 .pub-chips{display:flex;gap:4px;flex-wrap:wrap}
-.chip{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+.chip{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
 .chip.ok{background:#e8f5e9;color:#2e7d32}
 .chip.mal{background:#ffebee;color:#c62828}
-.pub-resumen{background:#fff;border:0.5px solid #e8e8e0;border-radius:10px;padding:14px;text-align:center;margin-bottom:14px}
-.pub-resumen .big{font-size:28px;font-weight:700;color:#1a1a1a}
-.pub-resumen .sub{font-size:12px;color:#888;margin-top:2px}
+.pub-resumen{background:var(--negro);border-radius:12px;padding:16px;text-align:center;margin-bottom:14px;color:var(--blanco)}
+.pub-resumen .big{font-size:32px;font-weight:800;color:var(--amarillo)}
+.pub-resumen .sub{font-size:12px;color:#aaa;margin-top:2px}
 
 /* mensaje */
-.msg-box{background:#f5f5f2;border-radius:8px;padding:14px;font-size:12px;white-space:pre-wrap;line-height:1.7;font-family:monospace;max-height:280px;overflow-y:auto;margin-bottom:10px;border:0.5px solid #e8e8e0}
-.btn{border:0.5px solid #ccc;border-radius:6px;padding:7px 14px;font-size:13px;background:#fff;cursor:pointer;font-weight:500}
-.btn:hover{background:#f5f5f2}
+.msg-box{background:#f5f5f2;border-radius:8px;padding:14px;font-size:12px;white-space:pre-wrap;line-height:1.7;font-family:monospace;max-height:280px;overflow-y:auto;margin-bottom:10px;border:1px solid var(--gris-borde)}
+.btn{border:2px solid var(--negro);border-radius:6px;padding:7px 16px;font-size:13px;background:var(--amarillo);cursor:pointer;font-weight:700;color:var(--negro)}
+.btn:hover{background:var(--amarillo-borde)}
 .copy-ok{color:#2e7d32;font-size:12px;margin-left:8px}
 
 /* loader */
 .loader{text-align:center;padding:40px;color:#aaa;font-size:13px}
-.spinner{width:28px;height:28px;border:3px solid #e0e0d8;border-top-color:#2a78d6;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
+.spinner{width:28px;height:28px;border:3px solid #e0e0d8;border-top-color:var(--amarillo);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* chart */
@@ -79,7 +82,7 @@ body{font-family:system-ui,sans-serif;background:#f7f7f4;color:#1a1a1a;font-size
 <div class="container">
 
 <div class="header">
-  <img src="logo.png" alt="Económicas" style="width:80px;height:80px;object-fit:contain;margin-bottom:8px">
+  <img src="logoecon.jpg" alt="Económicas" style="width:80px;height:80px;object-fit:contain;margin-bottom:8px">
   <h1>Veteranos A — Económicas</h1>
   <p id="fechaHeader">Cargando datos...</p>
 </div>
