@@ -129,13 +129,13 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
+var APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbzGK7sY_jMjFWw6nrmKod6uqVqEfMw3PF766yzg6s2wOUHleOzQW43K2CRNv-UTz4rF/exec';
 var SHEET_ID='2PACX-1vQw1QxbxrBRS-0l_QjM0Xce-WzueMrV8lyDkHnx3lb4oRh2i3A66eHlrFajlipv-geB02dXeIr76Akz';
 var GID='1795133779';
 var BASE_URL='https://docs.google.com/spreadsheets/d/e/'+SHEET_ID+'/pub?gid='+GID+'&single=true&output=csv&range=A1:I9999';
 var PROXIES=[
+  APPS_SCRIPT_URL,
   'https://corsproxy.io/?url='+encodeURIComponent(BASE_URL),
-  'https://api.allorigins.win/raw?url='+encodeURIComponent(BASE_URL),
-  'https://thingproxy.freeboard.io/fetch/'+BASE_URL,
   BASE_URL
 ];
 
@@ -176,7 +176,15 @@ var GASTOS_2026=[
   {d:"2026-06-06",imp:-55000},{d:"2026-06-13",imp:-55000},{d:"2026-06-20",imp:-55000}
 ];
 
-var PAGOS_DETALLE={};
+// Recaudación lograda por fecha real de pago (fuente: resumen del Sheet)
+var LOGRADO_REAL={
+  "01-2026":390000,
+  "02-2026":510000,
+  "03-2026":1314000,
+  "04-2026":1140000,
+  "05-2026":745000,
+  "06-2026":1260000
+};
 var chartBar=null, chartGastos=null;
 
 function fmt(n){return'$'+Math.round(n).toLocaleString('es-AR');}
@@ -314,17 +322,9 @@ function renderTodo(){
     return activos*std;
   });
 
-  // Recaudación lograda por fecha real de pago
-  var logrado=mesesVis.map(function(){return 0;});
-  Object.keys(PAGOS_DETALLE).forEach(function(j){
-    (PAGOS_DETALLE[j]||[]).forEach(function(p){
-      if(!p.fecha||p.fecha.length<7) return;
-      var anio=p.fecha.substring(0,4);
-      var mes=p.fecha.substring(5,7);
-      var mesKey=mes+'-'+anio;
-      var idx=mesesVis.indexOf(mesKey);
-      if(idx>=0) logrado[idx]+=p.importe;
-    });
+  // Recaudación lograda — usa datos reales del resumen del Sheet
+  var logrado=mesesVis.map(function(m){
+    return LOGRADO_REAL[m]||0;
   });
 
   if(chartBar) chartBar.destroy();
