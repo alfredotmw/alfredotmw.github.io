@@ -102,10 +102,7 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 
   <div id="tabAdmin" style="display:none">
     <div class="grid4" id="metrics"></div>
-    <div class="grid2">
-      <div class="card"><h3>Recaudación esperada vs lograda</h3><div class="chart-wrap"><canvas id="chartBar"></canvas></div></div>
-      <div class="card"><h3>Gastos tesorero</h3><div class="chart-wrap"><canvas id="chartGastos"></canvas></div></div>
-    </div>
+    <div class="card"><h3>Recaudación esperada vs lograda</h3><div class="chart-wrap"><canvas id="chartBar"></canvas></div></div>
     <div class="card">
       <h3>Semáforo de pagos 2026</h3>
       <div class="legend">
@@ -144,7 +141,17 @@ var NM=["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Di
 var NML=["","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 var CUOTA_STD={"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":60000,"07-2026":60000,"08-2026":60000,"09-2026":60000,"10-2026":60000,"11-2026":60000,"12-2026":60000};
 var MES_INICIO="01-2026";
-var MES_ACTUAL="06-2026";
+var MES_ACTUAL=(function(){
+  var d=new Date();
+  var mo=String(d.getMonth()+1).padStart(2,'0');
+  var y=d.getFullYear();
+  var actual=mo+'-'+y;
+  // si estamos fuera del rango de 2026, usar el límite más cercano
+  if(MESES_2026.indexOf(actual)===-1){
+    return y<2026 ? MESES_2026[0] : MESES_2026[MESES_2026.length-1];
+  }
+  return actual;
+})();
 
 // RESUMEN se construye dinámicamente desde el CSV en procesarCSV()
 var RESUMEN={};
@@ -153,7 +160,7 @@ var RESUMEN={};
 var GASTOS_2026=[];
 var PAGOS_DETALLE={};
 
-var chartBar=null, chartGastos=null;
+var chartBar=null;
 
 function fmt(n){return'$'+Math.round(n).toLocaleString('es-AR');}
 function mesLabel(m){var p=m.split('-');return NM[parseInt(p[0])]+' '+p[1].substring(2);}
@@ -315,13 +322,10 @@ function renderTodo(){
   document.getElementById('fechaHeader').textContent='Estado al '+hoy+' · '+mesNombre;
 
   var totalIn=jugadores.reduce(function(s,j){return s+Object.values(RESUMEN[j]).reduce(function(a,v){return a+v;},0);},0);
-  var totalOut=GASTOS_2026.reduce(function(s,r){return s+r.imp;},0);
   var alDia=jugadores.filter(function(j){return!tieneDeuda(j);}).length;
 
   document.getElementById('metrics').innerHTML=
     '<div class="metric"><div class="lbl">Recaudado 2026</div><div class="val">'+fmt(totalIn)+'</div></div>'+
-    '<div class="metric"><div class="lbl">Gastos</div><div class="val" style="color:#f44336">'+fmt(Math.abs(totalOut))+'</div></div>'+
-    '<div class="metric"><div class="lbl">Balance</div><div class="val" style="color:'+(totalIn+totalOut>=0?'#4caf50':'#f44336')+'">'+fmt(totalIn+totalOut)+'</div></div>'+
     '<div class="metric"><div class="lbl">Al día / Total</div><div class="val">'+alDia+' / '+jugadores.length+'</div></div>';
 
   var mesesVis=MESES_2026.slice(0,MESES_2026.indexOf(MES_ACTUAL)+1);
@@ -365,29 +369,6 @@ function renderTodo(){
         tooltip:{callbacks:{label:function(v){return v.dataset.label+': '+fmt(v.raw);}}}},
       scales:{x:{grid:{display:false},ticks:{font:{size:10}}},
         y:{ticks:{callback:function(v){return'$'+Math.round(v/1000)+'k';}},grid:{color:'#f0f0ec'}}}}
-  });
-
-  // Gastos por mes — leídos del CSV, fecha normalizada
-  var gastosMap={};
-  GASTOS_2026.forEach(function(r){
-    var fecha=parseFecha(r.d); // normaliza dd/mm/yyyy o Date string a yyyy-mm-dd
-    if(!fecha||fecha.length<7) return;
-    var anio=fecha.substring(0,4);
-    var mes=fecha.substring(5,7);
-    var mk=mes+'-'+anio; // "02-2026"
-    gastosMap[mk]=(gastosMap[mk]||0)+Math.abs(r.imp);
-  });
-  var gM=Object.keys(gastosMap).sort(function(a,b){
-    var ta=a.split('-')[1]+a.split('-')[0];
-    var tb=b.split('-')[1]+b.split('-')[0];
-    return ta.localeCompare(tb);
-  });
-  if(chartGastos) chartGastos.destroy();
-  chartGastos=new Chart(document.getElementById('chartGastos'),{
-    type:'bar',
-    data:{labels:gM.map(mesLabel),datasets:[{data:gM.map(function(m){return gastosMap[m];}),backgroundColor:'#e53935',borderRadius:3}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(v){return fmt(v.raw);}}}},
-      scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{ticks:{callback:function(v){return'$'+Math.round(v/1000)+'k';}},grid:{color:'#f0f0ec'}}}}
   });
 
   // Semáforo
