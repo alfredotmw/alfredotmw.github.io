@@ -139,7 +139,31 @@ var PROXIES=[
 var MESES_2026=["01-2026","02-2026","03-2026","04-2026","05-2026","06-2026","07-2026","08-2026","09-2026","10-2026","11-2026","12-2026"];
 var NM=["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var NML=["","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-var CUOTA_STD={"01-2026":40000,"02-2026":40000,"03-2026":60000,"04-2026":60000,"05-2026":60000,"06-2026":60000,"07-2026":60000,"08-2026":60000,"09-2026":60000,"10-2026":60000,"11-2026":60000,"12-2026":60000};
+
+/* ══════════════════════════════════════════════════════════════
+   ⚙️ CUOTAS VIGENTES — editá SÓLO esta lista.
+   Cuando cambie el valor, agregá una línea nueva con el mes DESDE
+   el que rige (formato "MM-YYYY"). El resto se recalcula solo.
+   ══════════════════════════════════════════════════════════════ */
+var CUOTAS=[
+  {desde:"01-2026", monto:40000},  // Ene–Feb 2026
+  {desde:"03-2026", monto:60000},  // Mar–Jul 2026
+  {desde:"08-2026", monto:72000},  // Ago 2026 en adelante
+];
+
+// Genera CUOTA_STD[mes] para todos los meses a partir de CUOTAS (no tocar)
+var CUOTA_STD=(function(){
+  function key(m){var p=m.split('-');return (+p[1])*100+(+p[0]);}
+  var ord=CUOTAS.slice().sort(function(a,b){return key(a.desde)-key(b.desde);});
+  var out={};
+  MESES_2026.forEach(function(m){
+    var val=ord[0].monto, k=key(m);
+    for(var i=0;i<ord.length;i++){ if(key(ord[i].desde)<=k) val=ord[i].monto; else break; }
+    out[m]=val;
+  });
+  return out;
+})();
+
 var MES_INICIO="01-2026";
 var MES_ACTUAL=(function(){
   var d=new Date();
