@@ -180,7 +180,7 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 
   <div class="card">
     <h3>Movimientos por destino</h3>
-    <div class="chart-wrap" style="max-width:520px;margin:0 auto"><canvas id="chartDestinos"></canvas></div>
+    <div class="chart-wrap"><canvas id="chartDestinos"></canvas></div>
   </div>
 
   <div class="card">
@@ -458,18 +458,25 @@ function renderCharts(){
   var palette=[CCM_BLUE,'#3182ce','#4299e1','#63b3ed','#2c5282','#1a365d','#805ad5','#38a169','#d69e2e','#e53e3e'];
   destroyChart(chartDestinos);
   chartDestinos=new Chart(document.getElementById('chartDestinos'),{
-    type:'doughnut',
+    type:'bar',
     data:{
-      labels:dests,
+      labels:dests.map(function(d){return d.length>28?d.substring(0,26)+'…':d;}),
       datasets:[{
+        label:'Movimientos',
         data:dests.map(function(d){return destCount[d];}),
         backgroundColor:dests.map(function(_,i){return palette[i%palette.length];}),
-        borderWidth:1,borderColor:'#fff'
+        borderRadius:3,borderSkipped:false
       }]
     },
     options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:12}}}
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:function(items){
+        return dests[items[0].dataIndex];
+      }}}},
+      scales:{
+        x:{beginAtZero:true,grid:{color:'#f0f0ec'},ticks:{font:{size:10},precision:0}},
+        y:{grid:{display:false},ticks:{font:{size:10}}}
+      }
     }
   });
 }
