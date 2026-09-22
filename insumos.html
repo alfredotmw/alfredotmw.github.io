@@ -19,7 +19,12 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
   --verde:#2e7d32;
   --verde-bg:#e8f5e9;
 }
-.container{max-width:720px;margin:0 auto;padding:16px}
+.container{max-width:1200px;margin:0 auto;padding:20px 24px;width:100%}
+.items-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.chart-row{grid-template-columns:1fr}}
+.main-charts .chart-wrap{height:260px}
+
 .header{text-align:center;padding:20px 16px 16px;margin-bottom:16px;background:var(--negro);border-radius:14px;color:#fff}
 .header img{width:80px;height:80px;object-fit:contain;display:block;margin:0 auto 8px;border-radius:8px;background:#fff}
 .header h1{font-size:18px;font-weight:700;color:var(--ccm-suave)}
@@ -32,7 +37,7 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 .metric .val.warn{color:#fc8181}
 .card{background:#fff;border:0.5px solid var(--gris-borde);border-radius:12px;padding:16px;margin-bottom:14px}
 .card h3{font-size:12px;font-weight:700;color:var(--negro);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px;border-left:4px solid var(--ccm);padding-left:8px}
-.chart-wrap{position:relative;height:220px;width:100%}
+.chart-wrap{position:relative;height:280px;width:100%}
 .chart-wrap.sm{height:160px}
 .search-wrap{margin-bottom:12px}
 .search-wrap input{
@@ -74,7 +79,7 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 }
 .modal-bg.open{display:flex}
 .modal-box{
-  background:#fff;border-radius:14px;padding:20px;width:92%;max-width:420px;
+  background:#fff;border-radius:14px;padding:24px;width:92%;max-width:720px;
   max-height:82vh;overflow-y:auto;position:relative
 }
 .modal-titulo{
@@ -163,7 +168,7 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
         <option value="movs">Más movimientos</option>
       </select>
     </div>
-    <div id="listaItems"></div>
+    <div id="listaItems" class="items-wrap"></div>
     <p class="hint" id="listaHint"></p>
   </div>
 </div>
