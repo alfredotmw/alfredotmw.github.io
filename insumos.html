@@ -47,16 +47,45 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 }
 .search-wrap input:focus{border-color:var(--ccm)}
 .item-card{
-  background:#fff;border:0.5px solid var(--gris-borde);border-radius:10px;
-  padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;
-  justify-content:space-between;align-items:center;gap:10px
+  background:#fff;border:1px solid var(--gris-borde);border-radius:12px;
+  padding:14px 16px;cursor:pointer;display:flex;flex-direction:column;gap:10px;
+  position:relative;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)
 }
-.item-card:hover{border-color:var(--ccm);background:var(--ccm-claro)}
-.item-name{font-weight:700;font-size:13px;flex:1;min-width:0;word-break:break-word}
-.item-meta{font-size:11px;color:#888;margin-top:2px}
-.stock-badge{font-size:12px;padding:4px 12px;border-radius:20px;font-weight:700;white-space:nowrap}
-.stock-badge.ok{background:var(--verde-bg);color:var(--verde)}
-.stock-badge.mal{background:var(--rojo-bg);color:var(--rojo)}
+.item-card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:6px;background:#94a3b8
+}
+.item-card.nivel-critico::before{background:#e53e3e}
+.item-card.nivel-bajo::before{background:#dd6b20}
+.item-card.nivel-ok::before{background:#38a169}
+.item-card.nivel-critico{background:#fff5f5;border-color:#feb2b2}
+.item-card.nivel-bajo{background:#fffaf0;border-color:#fbd38d}
+.item-card:hover{border-color:var(--ccm);box-shadow:0 4px 12px rgba(43,108,176,.12)}
+.item-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.item-name{font-weight:700;font-size:14px;flex:1;min-width:0;word-break:break-word;line-height:1.3}
+.item-meta{font-size:11px;color:#888;margin-top:4px}
+.stock-block{text-align:right;flex-shrink:0}
+.stock-qty{font-size:28px;font-weight:800;line-height:1;letter-spacing:-.5px}
+.stock-qty.critico{color:#c53030}
+.stock-qty.bajo{color:#c05621}
+.stock-qty.ok{color:#2f855a}
+.stock-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:4px}
+.stock-label.critico{color:#c53030}
+.stock-label.bajo{color:#c05621}
+.stock-label.ok{color:#2f855a}
+.stock-bar{height:8px;background:#edf2f7;border-radius:99px;overflow:hidden}
+.stock-bar > span{display:block;height:100%;border-radius:99px;background:#38a169}
+.stock-bar.critico > span{background:#e53e3e}
+.stock-bar.bajo > span{background:#dd6b20}
+.semaforo-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#555;margin:0 0 12px;align-items:center}
+.semaforo-legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:middle}
+.semaforo-legend .c{background:#e53e3e}.semaforo-legend .b{background:#dd6b20}.semaforo-legend .o{background:#38a169}
+.alert-strip{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+@media(max-width:700px){.alert-strip{grid-template-columns:1fr}}
+.alert-pill{border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
+.alert-pill.critico{background:#c53030;color:#fff}
+.alert-pill.bajo{background:#dd6b20;color:#fff}
+.alert-pill .big{font-size:26px;font-weight:800}
+.alert-pill .lbl{font-size:12px;opacity:.95}
 .btn{
   border:2px solid var(--negro);border-radius:6px;padding:7px 16px;font-size:13px;
   background:var(--ccm);cursor:pointer;font-weight:700;color:#fff
@@ -162,13 +191,17 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
       </div>
       <select id="filtroStock">
         <option value="todos">Todos</option>
-        <option value="ok">Stock &gt; 0</option>
+        <option value="riesgo">Críticos + bajos</option>
+        <option value="critico">Solo críticos</option>
+        <option value="bajo">Solo bajos</option>
+        <option value="ok">Solo OK</option>
         <option value="cero">Stock ≤ 0</option>
       </select>
       <select id="orden">
-        <option value="nombre">Nombre A–Z</option>
+        <option value="riesgo" selected>Más críticos primero</option>
         <option value="stockAsc">Stock ↑</option>
         <option value="stockDesc">Stock ↓</option>
+        <option value="nombre">Nombre A–Z</option>
         <option value="movs">Más movimientos</option>
       </select>
     </div>
@@ -182,6 +215,7 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
+var UMBRAL_BAJO=20;
 /* ══════════════════════════════════════════════════════════════
    Configuración de fuente CSV (solo form múltiple)
    ──────────────────────────────────────────────────────────────
@@ -440,20 +474,41 @@ function renderCharts(){
   });
 }
 
+function nivelStock(st){
+  if(st<=0) return 'critico';
+  if(st<=UMBRAL_BAJO) return 'bajo';
+  return 'ok';
+}
+function labelNivel(n){
+  if(n==='critico') return 'Crítico';
+  if(n==='bajo') return 'Bajo';
+  return 'OK';
+}
+
 function filteredSorted(){
   var q=(document.getElementById('buscar').value||'').trim().toLowerCase();
   var filtro=document.getElementById('filtroStock').value;
   var orden=document.getElementById('orden').value;
   var list=listInsumos().filter(function(i){
     if(q&&i.toLowerCase().indexOf(q)<0) return false;
-    if(filtro==='ok'&&stock[i]<=0) return false;
+    var niv=nivelStock(stock[i]);
+    if(filtro==='ok'&&niv!=='ok') return false;
     if(filtro==='cero'&&stock[i]>0) return false;
+    if(filtro==='critico'&&niv!=='critico') return false;
+    if(filtro==='bajo'&&niv!=='bajo') return false;
+    if(filtro==='riesgo'&&niv==='ok') return false;
     return true;
   });
   list.sort(function(a,b){
     if(orden==='stockAsc') return stock[a]-stock[b]||a.localeCompare(b,'es');
     if(orden==='stockDesc') return stock[b]-stock[a]||a.localeCompare(b,'es');
     if(orden==='movs') return (porInsumo[b]||[]).length-(porInsumo[a]||[]).length||a.localeCompare(b,'es');
+    if(orden==='riesgo'){
+      var order={critico:0,bajo:1,ok:2};
+      var d=order[nivelStock(stock[a])]-order[nivelStock(stock[b])];
+      if(d!==0) return d;
+      return stock[a]-stock[b]||a.localeCompare(b,'es');
+    }
     return a.localeCompare(b,'es');
   });
   return list;
@@ -461,6 +516,17 @@ function filteredSorted(){
 
 function renderLista(){
   var list=filteredSorted();
+  var all=listInsumos();
+  var maxPos=1;
+  all.forEach(function(i){ if(stock[i]>maxPos) maxPos=stock[i]; });
+  var nCrit=all.filter(function(i){return nivelStock(stock[i])==='critico';}).length;
+  var nBajo=all.filter(function(i){return nivelStock(stock[i])==='bajo';}).length;
+  var strip=document.getElementById('alertStrip');
+  if(strip){
+    strip.innerHTML=
+      '<div class="alert-pill critico"><div class="lbl">Stock crítico (≤ 0)</div><div class="big">'+nCrit+'</div></div>'+
+      '<div class="alert-pill bajo"><div class="lbl">Stock bajo (1–'+UMBRAL_BAJO+')</div><div class="big">'+nBajo+'</div></div>';
+  }
   var html='';
   if(!list.length){
     html='<div class="empty">No hay insumos que coincidan</div>';
@@ -468,17 +534,24 @@ function renderLista(){
     list.forEach(function(i){
       var st=stock[i];
       var nMov=(porInsumo[i]||[]).length;
-      var bad=st<=0;
-      html+='<div class="item-card" onclick="abrirModal(\''+escAttr(i)+'\')">'+
-        '<div><div class="item-name">'+esc(i)+'</div>'+
-        '<div class="item-meta">'+nMov+' movimiento'+(nMov!==1?'s':'')+'</div></div>'+
-        '<span class="stock-badge '+(bad?'mal':'ok')+'">'+(bad?'⚠ ':'')+st+'</span>'+
+      var niv=nivelStock(st);
+      var pct=st<=0?0:Math.min(100, Math.round(100*st/maxPos));
+      html+='<div class="item-card nivel-'+niv+'" onclick="abrirModal(\''+escAttr(i)+'\')">'+
+        '<div class="item-top">'+
+          '<div><div class="item-name">'+esc(i)+'</div>'+
+          '<div class="item-meta">'+nMov+' movimiento'+(nMov!==1?'s':'')+'</div></div>'+
+          '<div class="stock-block">'+
+            '<div class="stock-qty '+niv+'">'+st+'</div>'+
+            '<div class="stock-label '+niv+'">'+labelNivel(niv)+'</div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="stock-bar '+niv+'"><span style="width:'+pct+'%"></span></div>'+
         '</div>';
     });
   }
   document.getElementById('listaItems').innerHTML=html;
   document.getElementById('listaHint').textContent=
-    'Mostrando '+list.length+' de '+listInsumos().length+' insumos. Tocá uno para ver el detalle.';
+    'Mostrando '+list.length+' de '+all.length+' insumos · crítico ≤0 · bajo ≤'+UMBRAL_BAJO+' · tocá uno para el detalle.';
 }
 
 function monthlyNet(insumo){
