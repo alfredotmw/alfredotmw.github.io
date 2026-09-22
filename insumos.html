@@ -25,9 +25,10 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 @media(max-width:900px){.chart-row{grid-template-columns:1fr}}
 .main-charts .chart-wrap{height:260px}
 
-.header{text-align:center;padding:20px 16px 16px;margin-bottom:16px;background:var(--negro);border-radius:14px;color:#fff}
-.header img{width:80px;height:80px;object-fit:contain;display:block;margin:0 auto 8px;border-radius:8px;background:#fff}
-.header h1{font-size:18px;font-weight:700;color:var(--ccm-suave)}
+.header{text-align:center;padding:22px 20px 18px;margin-bottom:16px;background:var(--negro);border-radius:14px;color:#fff}
+.header .logo-wrap{display:inline-block;background:#fff;border-radius:12px;padding:10px 18px;margin:0 auto 12px;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.header img{width:auto;max-width:min(420px,88vw);height:auto;max-height:88px;object-fit:contain;display:block;margin:0 auto}
+.header h1{font-size:20px;font-weight:700;color:var(--ccm-suave)}
 .header p{font-size:12px;color:#aaa;margin-top:4px}
 .grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
 @media(min-width:560px){.grid4{grid-template-columns:repeat(4,1fr)}}
@@ -124,7 +125,9 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 </div>
 
 <div class="header">
-  <img src="logococ.jpg" alt="CCM">
+  <div class="logo-wrap">
+    <img src="logococ.jpg" alt="Centro Oncológico Corrientes · Computación Médica">
+  </div>
   <h1>CCM — Stock insumos (form múltiple)</h1>
   <p id="fechaHeader">Cargando datos…</p>
 </div>
