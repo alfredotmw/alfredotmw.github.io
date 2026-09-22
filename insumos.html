@@ -213,6 +213,7 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
 var UMBRAL_BAJO=20;
@@ -392,7 +393,52 @@ function renderMetrics(envios){
     '<div class="metric"><div class="lbl">Stock ≤ 0</div><div class="val'+(cero?' warn':'')+'">'+cero+'</div></div>';
 }
 
+if(window.ChartDataLabels){Chart.register(ChartDataLabels);}
+
 function destroyChart(c){if(c){try{c.destroy();}catch(e){}}}
+
+function barOptsH(titleCb){
+  return {
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    layout:{padding:{right:36}},
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{title:titleCb}},
+      datalabels:{
+        anchor:'end',align:'right',offset:4,
+        color:'#1a1a1a',
+        font:{size:11,weight:'600'},
+        clamp:true,
+        formatter:function(v){return v;}
+      }
+    },
+    scales:{
+      x:{display:false,beginAtZero:true},
+      y:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#4a5568'}}
+    }
+  };
+}
+
+function barOptsV(){
+  return {
+    responsive:true,maintainAspectRatio:false,
+    layout:{padding:{top:18}},
+    plugins:{
+      legend:{display:false},
+      datalabels:{
+        anchor:'end',align:'top',offset:2,
+        color:'#1a1a1a',
+        font:{size:10,weight:'600'},
+        clamp:true,
+        formatter:function(v){return v;}
+      }
+    },
+    scales:{
+      x:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#4a5568'}},
+      y:{display:false,beginAtZero:true}
+    }
+  };
+}
 
 function renderCharts(){
   var insumos=listInsumos();
@@ -411,16 +457,7 @@ function renderCharts(){
         borderRadius:3,borderSkipped:false
       }]
     },
-    options:{
-      indexAxis:'y',responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{title:function(items){
-        var idx=items[0].dataIndex;return byStock[idx];
-      }}}},
-      scales:{
-        x:{grid:{color:'#f0f0ec'},ticks:{font:{size:10}}},
-        y:{grid:{display:false},ticks:{font:{size:10}}}
-      }
-    }
+    options:barOptsH(function(items){return byStock[items[0].dataIndex];})
   });
 
   // Top 10 salidas
@@ -437,16 +474,7 @@ function renderCharts(){
         borderRadius:3,borderSkipped:false
       }]
     },
-    options:{
-      indexAxis:'y',responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{title:function(items){
-        return bySal[items[0].dataIndex];
-      }}}},
-      scales:{
-        x:{grid:{color:'#f0f0ec'},ticks:{font:{size:10}}},
-        y:{grid:{display:false},ticks:{font:{size:10}}}
-      }
-    }
+    options:barOptsH(function(items){return bySal[items[0].dataIndex];})
   });
 
   // Destinos
@@ -468,16 +496,7 @@ function renderCharts(){
         borderRadius:3,borderSkipped:false
       }]
     },
-    options:{
-      indexAxis:'y',responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{title:function(items){
-        return dests[items[0].dataIndex];
-      }}}},
-      scales:{
-        x:{beginAtZero:true,grid:{color:'#f0f0ec'},ticks:{font:{size:10},precision:0}},
-        y:{grid:{display:false},ticks:{font:{size:10}}}
-      }
-    }
+    options:barOptsH(function(items){return dests[items[0].dataIndex];})
   });
 }
 
@@ -595,14 +614,7 @@ function abrirModal(insumo){
         borderRadius:3,borderSkipped:false
       }]
     },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{grid:{display:false},ticks:{font:{size:10}}},
-        y:{grid:{color:'#f0f0ec'},ticks:{font:{size:10}}}
-      }
-    }
+    options:barOptsV()
   });
 
   var html='';
