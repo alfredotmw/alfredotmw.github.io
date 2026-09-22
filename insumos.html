@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CCM — Stock insumos (form múltiple)</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size:14px}
+:root{
+  --negro:#1a1a1a;
+  --ccm:#2b6cb0;
+  --ccm-claro:#ebf4ff;
+  --ccm-borde:#2c5282;
+  --ccm-suave:#90cdf4;
+  --gris-borde:#e0ddd5;
+  --rojo:#c62828;
+  --rojo-bg:#ffebee;
+  --verde:#2e7d32;
+  --verde-bg:#e8f5e9;
+}
+.container{max-width:720px;margin:0 auto;padding:16px}
+.header{text-align:center;padding:20px 16px 16px;margin-bottom:16px;background:var(--negro);border-radius:14px;color:#fff}
+.header img{width:80px;height:80px;object-fit:contain;display:block;margin:0 auto 8px;border-radius:8px;background:#fff}
+.header h1{font-size:18px;font-weight:700;color:var(--ccm-suave)}
+.header p{font-size:12px;color:#aaa;margin-top:4px}
+.grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+@media(min-width:560px){.grid4{grid-template-columns:repeat(4,1fr)}}
+.metric{background:var(--negro);border-radius:10px;padding:12px 14px}
+.metric .lbl{font-size:11px;color:#aaa;margin-bottom:3px}
+.metric .val{font-size:20px;font-weight:700;color:var(--ccm-suave)}
+.metric .val.warn{color:#fc8181}
+.card{background:#fff;border:0.5px solid var(--gris-borde);border-radius:12px;padding:16px;margin-bottom:14px}
+.card h3{font-size:12px;font-weight:700;color:var(--negro);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px;border-left:4px solid var(--ccm);padding-left:8px}
+.chart-wrap{position:relative;height:220px;width:100%}
+.chart-wrap.sm{height:160px}
+.search-wrap{margin-bottom:12px}
+.search-wrap input{
+  width:100%;padding:10px 14px;border:1.5px solid var(--gris-borde);border-radius:10px;
+  font-size:14px;outline:none;background:#fff
+}
+.search-wrap input:focus{border-color:var(--ccm)}
+.item-card{
+  background:#fff;border:0.5px solid var(--gris-borde);border-radius:10px;
+  padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;
+  justify-content:space-between;align-items:center;gap:10px
+}
+.item-card:hover{border-color:var(--ccm);background:var(--ccm-claro)}
+.item-name{font-weight:700;font-size:13px;flex:1;min-width:0;word-break:break-word}
+.item-meta{font-size:11px;color:#888;margin-top:2px}
+.stock-badge{font-size:12px;padding:4px 12px;border-radius:20px;font-weight:700;white-space:nowrap}
+.stock-badge.ok{background:var(--verde-bg);color:var(--verde)}
+.stock-badge.mal{background:var(--rojo-bg);color:var(--rojo)}
+.btn{
+  border:2px solid var(--negro);border-radius:6px;padding:7px 16px;font-size:13px;
+  background:var(--ccm);cursor:pointer;font-weight:700;color:#fff
+}
+.btn:hover{background:var(--ccm-borde)}
+.btn.ghost{background:#fff;color:var(--ccm);border-color:var(--ccm)}
+.btn.ghost:hover{background:var(--ccm-claro)}
+.loader{text-align:center;padding:40px;color:#aaa;font-size:13px}
+.spinner{
+  width:28px;height:28px;border:3px solid #e0e0d8;border-top-color:var(--ccm);
+  border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-box{
+  background:var(--rojo-bg);border:1px solid #ef9a9a;border-radius:10px;
+  padding:14px;margin-bottom:14px;font-size:13px;color:var(--rojo);display:none
+}
+.modal-bg{
+  display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.55);z-index:999;justify-content:center;align-items:center
+}
+.modal-bg.open{display:flex}
+.modal-box{
+  background:#fff;border-radius:14px;padding:20px;width:92%;max-width:420px;
+  max-height:82vh;overflow-y:auto;position:relative
+}
+.modal-titulo{
+  font-size:14px;font-weight:700;margin-bottom:6px;color:var(--negro);
+  border-left:4px solid var(--ccm);padding-left:8px;padding-right:30px
+}
+.modal-stock{font-size:12px;color:#666;margin-bottom:12px;padding-left:12px}
+.modal-cerrar{
+  position:absolute;top:16px;right:16px;cursor:pointer;font-size:22px;
+  color:#aaa;background:none;border:none
+}
+.modal-fila{padding:7px 0;border-bottom:0.5px solid #f0f0ec}
+.modal-fila:last-child{border:none}
+.modal-fila-top{display:flex;justify-content:space-between;font-size:13px;gap:8px}
+.modal-fecha{font-size:11px;color:#888;margin-top:2px}
+.tipo-in{color:var(--verde);font-weight:700}
+.tipo-out{color:var(--rojo);font-weight:700}
+.empty{text-align:center;padding:24px;color:#aaa;font-size:13px}
+.toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.toolbar select{
+  padding:8px 10px;border:1.5px solid var(--gris-borde);border-radius:8px;
+  font-size:13px;background:#fff;outline:none
+}
+.toolbar select:focus{border-color:var(--ccm)}
+.hint{font-size:11px;color:#888;margin-top:8px;line-height:1.4}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal-box">
+    <button class="modal-cerrar" id="modalCerrar" aria-label="Cerrar">✕</button>
+    <div class="modal-titulo" id="modalTitulo"></div>
+    <div class="modal-stock" id="modalStock"></div>
+    <div class="card" style="padding:10px;margin-bottom:12px">
+      <h3 style="margin-bottom:8px">Neto mensual</h3>
+      <div class="chart-wrap sm"><canvas id="chartModal"></canvas></div>
+    </div>
+    <div id="modalCuerpo"></div>
+  </div>
+</div>
+
+<div class="header">
+  <img src="logococ.jpg" alt="CCM">
+  <h1>CCM — Stock insumos (form múltiple)</h1>
+  <p id="fechaHeader">Cargando datos…</p>
+</div>
+
+<div class="error-box" id="errorBox"></div>
+<div id="loader" class="loader"><div class="spinner"></div>Cargando datos del formulario…</div>
+
+<div id="content" style="display:none">
+  <div class="grid4" id="metrics"></div>
+
+  <div class="card">
+    <h3>Top 10 por stock</h3>
+    <div class="chart-wrap"><canvas id="chartTopStock"></canvas></div>
+  </div>
+
+  <div class="card">
+    <h3>Top 10 por salidas (|cant.|)</h3>
+    <div class="chart-wrap"><canvas id="chartTopSalidas"></canvas></div>
+  </div>
+
+  <div class="card">
+    <h3>Movimientos por destino</h3>
+    <div class="chart-wrap"><canvas id="chartDestinos"></canvas></div>
+  </div>
+
+  <div class="card">
+    <h3>Insumos</h3>
+    <div class="toolbar">
+      <div class="search-wrap" style="flex:1;margin:0;min-width:160px">
+        <input type="search" id="buscar" placeholder="Buscar insumo…" autocomplete="off">
+      </div>
+      <select id="filtroStock">
+        <option value="todos">Todos</option>
+        <option value="ok">Stock &gt; 0</option>
+        <option value="cero">Stock ≤ 0</option>
+      </select>
+      <select id="orden">
+        <option value="nombre">Nombre A–Z</option>
+        <option value="stockAsc">Stock ↑</option>
+        <option value="stockDesc">Stock ↓</option>
+        <option value="movs">Más movimientos</option>
+      </select>
+    </div>
+    <div id="listaItems"></div>
+    <p class="hint" id="listaHint"></p>
+  </div>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════
+   Configuración de fuente CSV (solo form múltiple)
+   ──────────────────────────────────────────────────────────────
+   1) Preferí PUBLISH_CSV (Archivo → Compartir → Publicar en la web
+      → CSV del gid de "Respuestas de formulario 1"). Ejemplo:
+      https://docs.google.com/spreadsheets/d/e/2PACX-.../pub?gid=0&single=true&output=csv
+   2) Si PUBLISH_CSV está vacío, se intenta EXPORT_CSV (+ proxy CORS).
+   3) GID: gid de la hoja "Respuestas de formulario 1" (a menudo no es 0).
+   4) APPS_SCRIPT_URL: dejar vacío por ahora.
+   ══════════════════════════════════════════════════════════════ */
+var SHEET_FILE_ID='1P33YiN62DvbesDK83lvsnFnSQBcCZY4guAv87Pud8lA';
+var GID='1298987479'; // TODO: fijar gid real de "Respuestas de formulario 1" si no es 0
+var PUBLISH_CSV='https://docs.google.com/spreadsheets/d/e/2PACX-1vRZAS1Rd2lm5jCUwsDVJWUv82f3AXqwResqfeDLMPAi2GEhG6dA8guh1vY4N8VCydW2yiBjORFA7MHS/pub?gid=1298987479&single=true&output=csv';
+var EXPORT_CSV='https://docs.google.com/spreadsheets/d/'+SHEET_FILE_ID+'/export?format=csv&gid='+GID;
+var APPS_SCRIPT_URL=''; // vacío por ahora
+var PROXIES=[APPS_SCRIPT_URL, PUBLISH_CSV, 'https://corsproxy.io/?url='+encodeURIComponent(EXPORT_CSV), EXPORT_CSV].filter(Boolean);
+
+var NM=["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+var CCM_BLUE='#2b6cb0';
+var CCM_LIGHT='#90cdf4';
+var CCM_MUTE='#bee3f8';
+
+var movimientos=[]; // {fecha, tipo, destino, insumo, cantidad}
+var stock={};       // insumo -> number
+var porInsumo={};   // insumo -> [movimientos]
+var chartTopStock=null, chartTopSalidas=null, chartDestinos=null, chartModal=null;
+var ultimaCarga='';
+
+function esc(s){
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function escAttr(s){
+  return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+function parseFecha(str){
+  if(!str) return'';
+  str=str.toString().trim();
+  var m=str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m) return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  var iso=str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(iso) return iso[0];
+  var d=new Date(str);
+  if(!isNaN(d.getTime())){
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  return str.substring(0,10);
+}
+
+function parseCant(str){
+  if(str==null||str==='') return NaN;
+  if(typeof str==='number') return str;
+  str=String(str).replace(/\s/g,'').replace(/\./g,'').replace(/,/g,'.');
+  var n=parseFloat(str);
+  return isNaN(n)?NaN:n;
+}
+
+function normTipo(t){
+  t=(t||'').toString().trim().toLowerCase();
+  if(t.indexOf('entrad')>=0) return 'Entrada';
+  if(t.indexOf('salid')>=0||t.indexOf('retir')>=0) return 'Salida';
+  return (t||'').replace(/^\w/,function(c){return c.toUpperCase();})||'';
+}
+
+function findCol(headers, candidates){
+  var lower=headers.map(function(h){return (h||'').toString().trim().toLowerCase();});
+  for(var i=0;i<candidates.length;i++){
+    var idx=lower.indexOf(candidates[i].toLowerCase());
+    if(idx>=0) return idx;
+  }
+  // partial match
+  for(var j=0;j<candidates.length;j++){
+    var c=candidates[j].toLowerCase();
+    for(var k=0;k<lower.length;k++){
+      if(lower[k].indexOf(c)>=0) return k;
+    }
+  }
+  return -1;
+}
+
+function expandRows(rows){
+  if(!rows||rows.length<2) return {movs:[], envios:0};
+  var headers=rows[0].map(function(h){return (h||'').toString().trim();});
+  var iFecha=findCol(headers,['Marca temporal','Timestamp','Fecha']);
+  var iTipo=findCol(headers,['Estas ingresando o retirando insumos','Tipo','Operación']);
+  var iDest=findCol(headers,['Selecciona el destino','Destino']);
+
+  // Wide form: Insumo 1..10 + Cantidad 1..10
+  var slots=[];
+  for(var n=1;n<=10;n++){
+    var ii=findCol(headers,['Insumo '+n]);
+    var ic=findCol(headers,['Cantidad '+n]);
+    if(ii>=0&&ic>=0) slots.push({ii:ii,ic:ic});
+  }
+  // Fallback single-item form
+  if(slots.length===0){
+    var iIns=findCol(headers,['Selecciona el insumo','Insumo']);
+    var iCant=findCol(headers,['Cantidad']);
+    if(iIns>=0&&iCant>=0) slots.push({ii:iIns,ic:iCant});
+  }
+
+  var movs=[];
+  var envios=0;
+  for(var r=1;r<rows.length;r++){
+    var row=rows[r];
+    if(!row||!row.length) continue;
+    var fecha=parseFecha(row[iFecha>=0?iFecha:0]);
+    var tipo=normTipo(row[iTipo>=0?iTipo:1]);
+    var destino=(row[iDest>=0?iDest:2]||'').toString().trim();
+    if(!fecha&&!tipo) continue;
+    var any=false;
+    slots.forEach(function(s){
+      var insumo=(row[s.ii]||'').toString().trim();
+      var cant=parseCant(row[s.ic]);
+      if(!insumo||isNaN(cant)||cant===0) return;
+      any=true;
+      movs.push({
+        fecha:fecha,
+        tipo:tipo,
+        destino:destino||'(sin destino)',
+        insumo:insumo,
+        cantidad:Math.abs(cant)
+      });
+    });
+    if(any) envios++;
+  }
+  return {movs:movs, envios:envios};
+}
+
+function rebuildStock(){
+  stock={};
+  porInsumo={};
+  movimientos.forEach(function(m){
+    if(!porInsumo[m.insumo]) porInsumo[m.insumo]=[];
+    porInsumo[m.insumo].push(m);
+    if(stock[m.insumo]==null) stock[m.insumo]=0;
+    if(m.tipo==='Entrada') stock[m.insumo]+=Math.abs(m.cantidad);
+    else if(m.tipo==='Salida') stock[m.insumo]-=Math.abs(m.cantidad);
+  });
+  Object.keys(porInsumo).forEach(function(k){
+    porInsumo[k].sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');});
+  });
+}
+
+function mesKey(fecha){
+  if(!fecha||fecha.length<7) return null;
+  return fecha.substring(0,7); // YYYY-MM
+}
+function mesLabel(ym){
+  if(!ym) return'';
+  var p=ym.split('-');
+  return NM[parseInt(p[1],10)]+' '+p[0].substring(2);
+}
+
+function listInsumos(){
+  return Object.keys(stock).sort(function(a,b){return a.localeCompare(b,'es');});
+}
+
+function salidasAbs(insumo){
+  return (porInsumo[insumo]||[]).reduce(function(s,m){
+    return s+(m.tipo==='Salida'?Math.abs(m.cantidad):0);
+  },0);
+}
+
+function renderMetrics(envios){
+  var insumos=listInsumos();
+  var cero=insumos.filter(function(i){return stock[i]<=0;}).length;
+  document.getElementById('metrics').innerHTML=
+    '<div class="metric"><div class="lbl">Insumos</div><div class="val">'+insumos.length+'</div></div>'+
+    '<div class="metric"><div class="lbl">Movimientos</div><div class="val">'+movimientos.length+'</div></div>'+
+    '<div class="metric"><div class="lbl">Envíos (filas)</div><div class="val">'+envios+'</div></div>'+
+    '<div class="metric"><div class="lbl">Stock ≤ 0</div><div class="val'+(cero?' warn':'')+'">'+cero+'</div></div>';
+}
+
+function destroyChart(c){if(c){try{c.destroy();}catch(e){}}}
+
+function renderCharts(){
+  var insumos=listInsumos();
+
+  // Top 10 stock
+  var byStock=insumos.slice().sort(function(a,b){return stock[b]-stock[a];}).slice(0,10);
+  destroyChart(chartTopStock);
+  chartTopStock=new Chart(document.getElementById('chartTopStock'),{
+    type:'bar',
+    data:{
+      labels:byStock.map(function(i){return i.length>22?i.substring(0,20)+'…':i;}),
+      datasets:[{
+        label:'Stock',
+        data:byStock.map(function(i){return stock[i];}),
+        backgroundColor:byStock.map(function(i){return stock[i]<=0?'#fc8181':CCM_BLUE;}),
+        borderRadius:3,borderSkipped:false
+      }]
+    },
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:function(items){
+        var idx=items[0].dataIndex;return byStock[idx];
+      }}}},
+      scales:{
+        x:{grid:{color:'#f0f0ec'},ticks:{font:{size:10}}},
+        y:{grid:{display:false},ticks:{font:{size:10}}}
+      }
+    }
+  });
+
+  // Top 10 salidas
+  var bySal=insumos.slice().sort(function(a,b){return salidasAbs(b)-salidasAbs(a);}).slice(0,10);
+  destroyChart(chartTopSalidas);
+  chartTopSalidas=new Chart(document.getElementById('chartTopSalidas'),{
+    type:'bar',
+    data:{
+      labels:bySal.map(function(i){return i.length>22?i.substring(0,20)+'…':i;}),
+      datasets:[{
+        label:'Salidas',
+        data:bySal.map(salidasAbs),
+        backgroundColor:'#e53e3e',
+        borderRadius:3,borderSkipped:false
+      }]
+    },
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:function(items){
+        return bySal[items[0].dataIndex];
+      }}}},
+      scales:{
+        x:{grid:{color:'#f0f0ec'},ticks:{font:{size:10}}},
+        y:{grid:{display:false},ticks:{font:{size:10}}}
+      }
+    }
+  });
+
+  // Destinos
+  var destCount={};
+  movimientos.forEach(function(m){
+    destCount[m.destino]=(destCount[m.destino]||0)+1;
+  });
+  var dests=Object.keys(destCount).sort(function(a,b){return destCount[b]-destCount[a];});
+  var palette=[CCM_BLUE,'#3182ce','#4299e1','#63b3ed','#2c5282','#1a365d','#805ad5','#38a169','#d69e2e','#e53e3e'];
+  destroyChart(chartDestinos);
+  chartDestinos=new Chart(document.getElementById('chartDestinos'),{
+    type:'doughnut',
+    data:{
+      labels:dests,
+      datasets:[{
+        data:dests.map(function(d){return destCount[d];}),
+        backgroundColor:dests.map(function(_,i){return palette[i%palette.length];}),
+        borderWidth:1,borderColor:'#fff'
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:12}}}
+    }
+  });
+}
+
+function filteredSorted(){
+  var q=(document.getElementById('buscar').value||'').trim().toLowerCase();
+  var filtro=document.getElementById('filtroStock').value;
+  var orden=document.getElementById('orden').value;
+  var list=listInsumos().filter(function(i){
+    if(q&&i.toLowerCase().indexOf(q)<0) return false;
+    if(filtro==='ok'&&stock[i]<=0) return false;
+    if(filtro==='cero'&&stock[i]>0) return false;
+    return true;
+  });
+  list.sort(function(a,b){
+    if(orden==='stockAsc') return stock[a]-stock[b]||a.localeCompare(b,'es');
+    if(orden==='stockDesc') return stock[b]-stock[a]||a.localeCompare(b,'es');
+    if(orden==='movs') return (porInsumo[b]||[]).length-(porInsumo[a]||[]).length||a.localeCompare(b,'es');
+    return a.localeCompare(b,'es');
+  });
+  return list;
+}
+
+function renderLista(){
+  var list=filteredSorted();
+  var html='';
+  if(!list.length){
+    html='<div class="empty">No hay insumos que coincidan</div>';
+  } else {
+    list.forEach(function(i){
+      var st=stock[i];
+      var nMov=(porInsumo[i]||[]).length;
+      var bad=st<=0;
+      html+='<div class="item-card" onclick="abrirModal(\''+escAttr(i)+'\')">'+
+        '<div><div class="item-name">'+esc(i)+'</div>'+
+        '<div class="item-meta">'+nMov+' movimiento'+(nMov!==1?'s':'')+'</div></div>'+
+        '<span class="stock-badge '+(bad?'mal':'ok')+'">'+(bad?'⚠ ':'')+st+'</span>'+
+        '</div>';
+    });
+  }
+  document.getElementById('listaItems').innerHTML=html;
+  document.getElementById('listaHint').textContent=
+    'Mostrando '+list.length+' de '+listInsumos().length+' insumos. Tocá uno para ver el detalle.';
+}
+
+function monthlyNet(insumo){
+  var map={};
+  (porInsumo[insumo]||[]).forEach(function(m){
+    var k=mesKey(m.fecha);
+    if(!k) return;
+    if(!map[k]) map[k]=0;
+    if(m.tipo==='Entrada') map[k]+=Math.abs(m.cantidad);
+    else if(m.tipo==='Salida') map[k]-=Math.abs(m.cantidad);
+  });
+  var keys=Object.keys(map).sort();
+  return {labels:keys.map(mesLabel), keys:keys, data:keys.map(function(k){return map[k];})};
+}
+
+function abrirModal(insumo){
+  var st=stock[insumo]!=null?stock[insumo]:0;
+  var movs=porInsumo[insumo]||[];
+  document.getElementById('modalTitulo').textContent=insumo;
+  document.getElementById('modalStock').innerHTML=
+    'Stock actual: <strong style="color:'+(st<=0?'var(--rojo)':'var(--verde)')+'">'+st+'</strong>'+
+    ' · '+movs.length+' movimiento'+(movs.length!==1?'s':'');
+
+  var net=monthlyNet(insumo);
+  destroyChart(chartModal);
+  chartModal=new Chart(document.getElementById('chartModal'),{
+    type:'bar',
+    data:{
+      labels:net.labels.length?net.labels:['—'],
+      datasets:[{
+        label:'Neto (E−S)',
+        data:net.data.length?net.data:[0],
+        backgroundColor:(net.data.length?net.data:[0]).map(function(v){return v>=0?CCM_BLUE:'#fc8181';}),
+        borderRadius:3,borderSkipped:false
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:10}}},
+        y:{grid:{color:'#f0f0ec'},ticks:{font:{size:10}}}
+      }
+    }
+  });
+
+  var html='';
+  if(!movs.length){
+    html='<p class="empty">Sin movimientos</p>';
+  } else {
+    movs.forEach(function(m){
+      var sign=m.tipo==='Entrada'?'+':'-';
+      var cls=m.tipo==='Entrada'?'tipo-in':'tipo-out';
+      html+='<div class="modal-fila"><div class="modal-fila-top">'+
+        '<span><span class="'+cls+'">'+esc(m.tipo)+'</span> · '+esc(m.destino)+'</span>'+
+        '<span style="font-weight:700">'+sign+Math.abs(m.cantidad)+'</span>'+
+        '</div><div class="modal-fecha">'+esc(m.fecha)+'</div></div>';
+    });
+  }
+  document.getElementById('modalCuerpo').innerHTML=html;
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function cerrarModal(){document.getElementById('modalBg').classList.remove('open');}
+document.getElementById('modalCerrar').addEventListener('click',cerrarModal);
+document.getElementById('modalBg').addEventListener('click',function(e){if(e.target===this)cerrarModal();});
+
+document.getElementById('buscar').addEventListener('input',renderLista);
+document.getElementById('filtroStock').addEventListener('change',renderLista);
+document.getElementById('orden').addEventListener('change',renderLista);
+
+function showError(msg){
+  var box=document.getElementById('errorBox');
+  box.style.display='block';
+  box.innerHTML=msg;
+}
+
+function renderTodo(envios){
+  var hoy=new Date().toLocaleString('es-AR',{
+    day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'
+  });
+  ultimaCarga=hoy;
+  document.getElementById('fechaHeader').textContent=
+    'Última carga: '+hoy+' · '+movimientos.length+' mov. / '+envios+' envíos';
+  renderMetrics(envios);
+  renderCharts();
+  renderLista();
+}
+
+function cargarConProxy(idx){
+  if(idx>=PROXIES.length){
+    document.getElementById('loader').style.display='none';
+    document.getElementById('content').style.display='';
+    showError(
+      '<strong>No se pudo leer el CSV.</strong><br>'+
+      '1) En Google Sheets: <em>Archivo → Compartir → Publicar en la web</em> → hoja '+
+      '"Respuestas de formulario 1" → CSV.<br>'+
+      '2) Pegá esa URL en <code>PUBLISH_CSV</code> arriba en <code>insumos.html</code> '+
+      '(dejá el placeholder vacío solo si el export funciona).<br>'+
+      '3) Confirmá que <code>GID</code> sea el de esa hoja (puede no ser 0).'
+    );
+    renderTodo(0);
+    return;
+  }
+  var url=PROXIES[idx];
+  Papa.parse(url,{
+    download:true,
+    skipEmptyLines:true,
+    complete:function(r){
+      if(!r.data||r.data.length<2){cargarConProxy(idx+1);return;}
+      // Detect HTML error pages
+      var first=(r.data[0]&&r.data[0][0]||'').toString();
+      if(first.indexOf('<!')===0||first.toLowerCase().indexOf('<html')===0){
+        cargarConProxy(idx+1);return;
+      }
+      console.log('CSV OK desde proxy #'+idx+', filas:', r.data.length);
+      var expanded=expandRows(r.data);
+      movimientos=expanded.movs;
+      rebuildStock();
+      document.getElementById('loader').style.display='none';
+      document.getElementById('content').style.display='';
+      document.getElementById('errorBox').style.display='none';
+      renderTodo(expanded.envios);
+    },
+    error:function(err){
+      console.warn('Proxy #'+idx+' falló', err);
+      cargarConProxy(idx+1);
+    }
+  });
+}
+
+if(!PROXIES.length){
+  document.getElementById('loader').style.display='none';
+  showError('No hay URLs configuradas. Definí PUBLISH_CSV o verificá SHEET_FILE_ID / GID.');
+} else {
+  cargarConProxy(0);
+}
+</script>
+</body>
+</html>
