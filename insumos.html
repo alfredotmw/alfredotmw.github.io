@@ -130,9 +130,28 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 .toolbar select:focus{border-color:var(--ccm)}
 .hint{font-size:11px;color:#888;margin-top:8px;line-height:1.4}
 .pedido-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.pedido-add{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  margin-bottom:12px;padding:12px;border:1px dashed var(--ccm-suave);
+  border-radius:10px;background:var(--ccm-claro)
+}
+.pedido-add select,.pedido-add input[type="text"],.pedido-add input[type="number"]{
+  padding:8px 10px;border:1.5px solid var(--gris-borde);border-radius:8px;
+  font-size:13px;background:#fff;outline:none
+}
+.pedido-add select{min-width:min(280px,100%);flex:1}
+.pedido-add input[type="text"]{min-width:min(220px,100%);flex:1}
+.pedido-add input[type="number"]{width:90px;font-weight:700;text-align:center}
+.pedido-add select:focus,.pedido-add input:focus{border-color:var(--ccm)}
+.pedido-row .btn-quitar{
+  border:none;background:transparent;color:#c53030;cursor:pointer;
+  font-size:18px;line-height:1;padding:4px 6px;border-radius:6px
+}
+.pedido-row .btn-quitar:hover{background:#ffebee}
+.pedido-row.manual{background:#ebf8ff;border-color:#90cdf4}
 .pedido-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;max-height:320px;overflow-y:auto}
 .pedido-row{
-  display:grid;grid-template-columns:28px 1fr auto 90px;gap:10px;align-items:center;
+  display:grid;grid-template-columns:28px 1fr auto 90px 28px;gap:10px;align-items:center;
   padding:10px 12px;border:1px solid var(--gris-borde);border-radius:10px;background:#fafaf8
 }
 .pedido-row.critico{background:#fff5f5;border-color:#feb2b2}
@@ -223,9 +242,18 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 
   <div class="card">
     <h3>Pedido WhatsApp</h3>
-    <p class="hint" style="margin:0 0 10px">Marcá insumos críticos/bajos, ajustá cantidades y copiá el mensaje al chat.</p>
+    <p class="hint" style="margin:0 0 10px">Marcá críticos/bajos, sumá otros insumos si hace falta, ajustá cantidades y copiá el mensaje.</p>
     <div class="pedido-toolbar">
       <button type="button" class="btn ghost" id="btnPedidoRecargar">Recargar del stock</button>
+    </div>
+    <div class="pedido-add" onclick="event.stopPropagation()">
+      <select id="pedidoAddSelect" aria-label="Elegir insumo del stock">
+        <option value="">— Elegir del stock —</option>
+      </select>
+      <input type="text" id="pedidoAddNombre" list="pedidoAddDatalist" placeholder="O escribir nombre…" autocomplete="off">
+      <datalist id="pedidoAddDatalist"></datalist>
+      <input type="number" id="pedidoAddQty" min="1" step="1" value="20" aria-label="Cantidad a pedir">
+      <button type="button" class="btn" id="btnPedidoAgregar">Agregar</button>
     </div>
     <div id="pedidoRows" class="pedido-rows"></div>
     <label for="pedidoPreview" style="font-size:12px;font-weight:700;display:block;margin-bottom:6px">Vista previa del mensaje</label>
@@ -632,9 +660,11 @@ function capturePedidoFromDom(){
     var cb=row.querySelector('input[type="checkbox"]');
     var qtyEl=row.querySelector('input[type="number"]');
     var qty=qtyEl?parseInt(qtyEl.value,10):NaN;
+    var prev=pedidoState[name]||{};
     pedidoState[name]={
       checked:cb?!!cb.checked:true,
-      qty:isNaN(qty)?suggestedQty(stock[name]||0):qty
+      qty:isNaN(qty)?suggestedQty(stock[name]!=null?stock[name]:0):qty,
+      manual:!!prev.manual || row.classList.contains('manual')
     };
   });
 }
@@ -657,62 +687,148 @@ function updatePedidoPreview(){
   document.getElementById('pedidoPreview').value=msg;
 }
 
-function renderPedido(resetDefaults){
-  if(!resetDefaults) capturePedidoFromDom();
+function fillPedidoAddOptions(){
+  var sel=document.getElementById('pedidoAddSelect');
+  var dl=document.getElementById('pedidoAddDatalist');
+  if(!sel||!dl) return;
+  var inPedido={};
+  Object.keys(pedidoState).forEach(function(k){inPedido[k]=true;});
+  var all=listInsumos();
+  var opts='<option value="">— Elegir del stock —</option>';
+  var dlHtml='';
+  all.forEach(function(i){
+    dlHtml+='<option value="'+esc(i)+'"></option>';
+    if(inPedido[i]) return;
+    var st=stock[i];
+    opts+='<option value="'+esc(i)+'">'+esc(i)+' (stock '+st+')</option>';
+  });
+  sel.innerHTML=opts;
+  dl.innerHTML=dlHtml;
+}
 
-  var items=listInsumos().filter(function(i){
+function bindPedidoRow(row){
+  var cb=row.querySelector('input[type="checkbox"]');
+  var qtyEl=row.querySelector('input[type="number"]');
+  var quitar=row.querySelector('.btn-quitar');
+  function sync(){
+    var name=row.getAttribute('data-insumo');
+    var q=parseInt(qtyEl.value,10);
+    var prev=pedidoState[name]||{};
+    pedidoState[name]={
+      checked:!!cb.checked,
+      qty:isNaN(q)?1:q,
+      manual:!!prev.manual || row.classList.contains('manual')
+    };
+    updatePedidoPreview();
+  }
+  cb.addEventListener('change',sync);
+  qtyEl.addEventListener('input',sync);
+  qtyEl.addEventListener('change',sync);
+  if(quitar){
+    quitar.addEventListener('click',function(e){
+      e.stopPropagation();
+      var name=row.getAttribute('data-insumo');
+      delete pedidoState[name];
+      renderPedido(false);
+    });
+  }
+}
+
+function pedidoRowHtml(i, opts){
+  opts=opts||{};
+  var st=stock[i]!=null?stock[i]:null;
+  var niv=st==null?'manual':nivelStock(st);
+  var manual=!!opts.manual || niv==='ok' || st==null;
+  var prev=pedidoState[i];
+  var checked=prev?!!prev.checked:true;
+  var qty=prev&&prev.qty!=null?prev.qty:(st==null?suggestedQty(0):suggestedQty(st));
+  pedidoState[i]={checked:checked,qty:qty,manual:manual||!!(prev&&prev.manual)};
+  var meta=st==null
+    ? 'Agregado · sin stock en lista'
+    : (manual&&niv==='ok'
+      ? 'OK · stock actual: '+st
+      : labelNivel(niv)+' · stock actual: '+st);
+  var cls=manual&&niv==='ok'?'manual':(niv==='manual'?'manual':niv);
+  var quitar=pedidoState[i].manual
+    ? '<button type="button" class="btn-quitar" title="Quitar del pedido" aria-label="Quitar">×</button>'
+    : '<span></span>';
+  return '<div class="pedido-row '+cls+'" data-insumo="'+esc(i)+'" onclick="event.stopPropagation()">'+
+    '<input type="checkbox"'+(checked?' checked':'')+' aria-label="Incluir '+esc(i)+'" onclick="event.stopPropagation()">'+
+    '<div><div class="pname">'+esc(i)+'</div>'+
+    '<div class="pmeta">'+meta+'</div></div>'+
+    '<div class="pstock" style="font-size:12px;color:#666;text-align:right">pedir</div>'+
+    '<input type="number" min="1" step="1" value="'+qty+'" onclick="event.stopPropagation()" onfocus="event.stopPropagation()">'+
+    quitar+
+    '</div>';
+}
+
+function renderPedido(resetDefaults){
+  if(resetDefaults){
+    pedidoState={};
+  } else {
+    capturePedidoFromDom();
+  }
+
+  var risk=listInsumos().filter(function(i){
     var n=nivelStock(stock[i]);
     return n==='critico'||n==='bajo';
   });
-  items.sort(function(a,b){
+  risk.sort(function(a,b){
     var order={critico:0,bajo:1};
     var d=order[nivelStock(stock[a])]-order[nivelStock(stock[b])];
     if(d!==0) return d;
     return stock[a]-stock[b]||a.localeCompare(b,'es');
   });
 
-  var keepKeys={};
-  items.forEach(function(i){keepKeys[i]=true;});
+  var riskSet={};
+  risk.forEach(function(i){riskSet[i]=true;});
+
+  // Keep manual / user-added items that are not in risk list
+  var extras=Object.keys(pedidoState).filter(function(k){
+    return !riskSet[k] && (pedidoState[k].manual || pedidoState[k].checked!==undefined);
+  }).sort(function(a,b){return a.localeCompare(b,'es');});
+
+  // Drop state for items that are neither risk nor marked manual
   Object.keys(pedidoState).forEach(function(k){
-    if(!keepKeys[k]) delete pedidoState[k];
+    if(riskSet[k]) return;
+    if(pedidoState[k].manual) return;
+    delete pedidoState[k];
   });
 
   var html='';
-  if(!items.length){
-    html='<div class="empty">No hay insumos críticos ni bajos para pedir</div>';
+  if(!risk.length && !extras.length){
+    html='<div class="empty">No hay insumos críticos/bajos. Usá “Agregar” para sumar al pedido.</div>';
   } else {
-    items.forEach(function(i){
-      var st=stock[i];
-      var niv=nivelStock(st);
-      var prev=pedidoState[i];
-      var checked=prev?!!prev.checked:true; // crítico y bajo: ambos marcados por defecto
-      var qty=prev&&prev.qty!=null?prev.qty:suggestedQty(st);
-      pedidoState[i]={checked:checked,qty:qty};
-      html+='<div class="pedido-row '+niv+'" data-insumo="'+esc(i)+'" onclick="event.stopPropagation()">'+
-        '<input type="checkbox"'+(checked?' checked':'')+' aria-label="Incluir '+esc(i)+'" onclick="event.stopPropagation()">'+
-        '<div><div class="pname">'+esc(i)+'</div>'+
-        '<div class="pmeta">'+labelNivel(niv)+' · stock actual: '+st+'</div></div>'+
-        '<div class="pstock" style="font-size:12px;color:#666;text-align:right">pedir</div>'+
-        '<input type="number" min="1" step="1" value="'+qty+'" onclick="event.stopPropagation()" onfocus="event.stopPropagation()">'+
-        '</div>';
-    });
+    risk.forEach(function(i){ html+=pedidoRowHtml(i,{manual:false}); });
+    extras.forEach(function(i){ html+=pedidoRowHtml(i,{manual:true}); });
   }
   document.getElementById('pedidoRows').innerHTML=html;
-
-  document.querySelectorAll('#pedidoRows .pedido-row').forEach(function(row){
-    var cb=row.querySelector('input[type="checkbox"]');
-    var qtyEl=row.querySelector('input[type="number"]');
-    function sync(){
-      var name=row.getAttribute('data-insumo');
-      var q=parseInt(qtyEl.value,10);
-      pedidoState[name]={checked:!!cb.checked,qty:isNaN(q)?1:q};
-      updatePedidoPreview();
-    }
-    cb.addEventListener('change',sync);
-    qtyEl.addEventListener('input',sync);
-    qtyEl.addEventListener('change',sync);
-  });
+  document.querySelectorAll('#pedidoRows .pedido-row').forEach(bindPedidoRow);
+  fillPedidoAddOptions();
   updatePedidoPreview();
+}
+
+function agregarInsumoAlPedido(){
+  capturePedidoFromDom();
+  var sel=document.getElementById('pedidoAddSelect');
+  var nomEl=document.getElementById('pedidoAddNombre');
+  var qtyEl=document.getElementById('pedidoAddQty');
+  var name=(sel&&sel.value?sel.value:'').trim();
+  if(!name && nomEl) name=(nomEl.value||'').trim();
+  if(!name){
+    alert('Elegí o escribí un insumo para agregar.');
+    return;
+  }
+  var qty=qtyEl?parseInt(qtyEl.value,10):NaN;
+  if(isNaN(qty)||qty<=0){
+    var st=stock[name]!=null?stock[name]:0;
+    qty=suggestedQty(st);
+  }
+  pedidoState[name]={checked:true,qty:qty,manual:true};
+  if(sel) sel.value='';
+  if(nomEl) nomEl.value='';
+  if(qtyEl) qtyEl.value=String(UMBRAL_BAJO);
+  renderPedido(false);
 }
 
 function monthlyNet(insumo){
@@ -780,6 +896,17 @@ document.getElementById('orden').addEventListener('change',renderLista);
 document.getElementById('btnPedidoRecargar').addEventListener('click',function(){
   pedidoState={};
   renderPedido(true);
+});
+document.getElementById('btnPedidoAgregar').addEventListener('click',agregarInsumoAlPedido);
+document.getElementById('pedidoAddNombre').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){e.preventDefault();agregarInsumoAlPedido();}
+});
+document.getElementById('pedidoAddSelect').addEventListener('change',function(){
+  if(this.value){
+    document.getElementById('pedidoAddNombre').value='';
+    var st=stock[this.value];
+    document.getElementById('pedidoAddQty').value=String(suggestedQty(st!=null?st:0));
+  }
 });
 document.getElementById('btnCopiarPedido').addEventListener('click',function(){
   var ta=document.getElementById('pedidoPreview');
