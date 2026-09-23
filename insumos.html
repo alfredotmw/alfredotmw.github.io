@@ -30,12 +30,6 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 .header img{width:auto;max-width:min(420px,88vw);height:auto;max-height:88px;object-fit:contain;display:block;margin:0 auto}
 .header h1{font-size:20px;font-weight:700;color:var(--ccm-suave)}
 .header p{font-size:12px;color:#aaa;margin-top:4px}
-.grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
-@media(min-width:560px){.grid4{grid-template-columns:repeat(4,1fr)}}
-.metric{background:var(--negro);border-radius:10px;padding:12px 14px}
-.metric .lbl{font-size:11px;color:#aaa;margin-bottom:3px}
-.metric .val{font-size:20px;font-weight:700;color:var(--ccm-suave)}
-.metric .val.warn{color:#fc8181}
 .card{background:#fff;border:0.5px solid var(--gris-borde);border-radius:12px;padding:16px;margin-bottom:14px}
 .card h3{font-size:12px;font-weight:700;color:var(--negro);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px;border-left:4px solid var(--ccm);padding-left:8px}
 .chart-wrap{position:relative;height:280px;width:100%}
@@ -135,6 +129,35 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 }
 .toolbar select:focus{border-color:var(--ccm)}
 .hint{font-size:11px;color:#888;margin-top:8px;line-height:1.4}
+.pedido-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.pedido-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;max-height:320px;overflow-y:auto}
+.pedido-row{
+  display:grid;grid-template-columns:28px 1fr auto 90px;gap:10px;align-items:center;
+  padding:10px 12px;border:1px solid var(--gris-borde);border-radius:10px;background:#fafaf8
+}
+.pedido-row.critico{background:#fff5f5;border-color:#feb2b2}
+.pedido-row.bajo{background:#fffaf0;border-color:#fbd38d}
+.pedido-row .pname{font-weight:600;font-size:13px;word-break:break-word}
+.pedido-row .pmeta{font-size:11px;color:#666;margin-top:2px}
+.pedido-row input[type="number"]{
+  width:100%;padding:7px 8px;border:1.5px solid var(--gris-borde);border-radius:8px;
+  font-size:14px;font-weight:700;text-align:center;outline:none
+}
+.pedido-row input[type="number"]:focus{border-color:var(--ccm)}
+.pedido-row input[type="checkbox"]{width:18px;height:18px;accent-color:var(--ccm);cursor:pointer}
+#pedidoPreview{
+  width:100%;min-height:140px;padding:12px;border:1.5px solid var(--gris-borde);
+  border-radius:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;
+  line-height:1.45;resize:vertical;outline:none;background:#f7fafc
+}
+#pedidoPreview:focus{border-color:var(--ccm)}
+.pedido-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.pedido-copied{font-size:12px;font-weight:700;color:var(--verde);opacity:0;transition:opacity .2s}
+.pedido-copied.show{opacity:1}
+@media(max-width:560px){
+  .pedido-row{grid-template-columns:28px 1fr;grid-template-rows:auto auto}
+  .pedido-row .pstock,.pedido-row input[type="number"]{grid-column:2}
+}
 </style>
 </head>
 <body>
@@ -165,26 +188,15 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
 <div id="loader" class="loader"><div class="spinner"></div>Cargando datos del formulario…</div>
 
 <div id="content" style="display:none">
-  <div class="grid4" id="metrics"></div>
-
-  <div class="chart-row">
-  <div class="card">
-    <h3>Top 10 por stock</h3>
-    <div class="chart-wrap"><canvas id="chartTopStock"></canvas></div>
-  </div>
-  <div class="card">
-    <h3>Top 10 por salidas (|cant.|)</h3>
-    <div class="chart-wrap"><canvas id="chartTopSalidas"></canvas></div>
-  </div>
-  </div>
 
   <div class="card">
-    <h3>Movimientos por destino</h3>
-    <div class="chart-wrap"><canvas id="chartDestinos"></canvas></div>
-  </div>
-
-  <div class="card">
-    <h3>Insumos</h3>
+    <h3>Stock disponible</h3>
+    <div id="alertStrip" class="alert-strip"></div>
+    <div class="semaforo-legend">
+      <span><i class="c"></i>Crítico (≤ 0)</span>
+      <span><i class="b"></i>Bajo (1–20)</span>
+      <span><i class="o"></i>OK</span>
+    </div>
     <div class="toolbar">
       <div class="search-wrap" style="flex:1;margin:0;min-width:160px">
         <input type="search" id="buscar" placeholder="Buscar insumo…" autocomplete="off">
@@ -208,6 +220,38 @@ body{font-family:system-ui,sans-serif;background:#f2f2f0;color:#1a1a1a;font-size
     <div id="listaItems" class="items-wrap"></div>
     <p class="hint" id="listaHint"></p>
   </div>
+
+  <div class="card">
+    <h3>Pedido WhatsApp</h3>
+    <p class="hint" style="margin:0 0 10px">Marcá insumos críticos/bajos, ajustá cantidades y copiá el mensaje al chat.</p>
+    <div class="pedido-toolbar">
+      <button type="button" class="btn ghost" id="btnPedidoRecargar">Recargar del stock</button>
+    </div>
+    <div id="pedidoRows" class="pedido-rows"></div>
+    <label for="pedidoPreview" style="font-size:12px;font-weight:700;display:block;margin-bottom:6px">Vista previa del mensaje</label>
+    <textarea id="pedidoPreview" readonly></textarea>
+    <div class="pedido-actions">
+      <button type="button" class="btn" id="btnCopiarPedido">Copiar mensaje</button>
+      <span class="pedido-copied" id="pedidoCopied">Copiado</span>
+    </div>
+  </div>
+
+  <div class="chart-row">
+  <div class="card">
+    <h3>Seguir de cerca — más salidas</h3>
+    <div class="chart-wrap"><canvas id="chartTopSalidas"></canvas></div>
+  </div>
+  <div class="card">
+    <h3>Más movimientos</h3>
+    <div class="chart-wrap"><canvas id="chartTopMovs"></canvas></div>
+  </div>
+  </div>
+
+  <div class="card">
+    <h3>Movimientos por destino</h3>
+    <div class="chart-wrap"><canvas id="chartDestinos"></canvas></div>
+  </div>
+
 </div>
 
 </div>
@@ -242,8 +286,9 @@ var CCM_MUTE='#bee3f8';
 var movimientos=[]; // {fecha, tipo, destino, insumo, cantidad}
 var stock={};       // insumo -> number
 var porInsumo={};   // insumo -> [movimientos]
-var chartTopStock=null, chartTopSalidas=null, chartDestinos=null, chartModal=null;
+var chartTopSalidas=null, chartTopMovs=null, chartDestinos=null, chartModal=null;
 var ultimaCarga='';
+var pedidoState={}; // insumo -> {checked, qty}
 
 function esc(s){
   return String(s==null?'':s)
@@ -383,14 +428,8 @@ function salidasAbs(insumo){
   },0);
 }
 
-function renderMetrics(envios){
-  var insumos=listInsumos();
-  var cero=insumos.filter(function(i){return stock[i]<=0;}).length;
-  document.getElementById('metrics').innerHTML=
-    '<div class="metric"><div class="lbl">Insumos</div><div class="val">'+insumos.length+'</div></div>'+
-    '<div class="metric"><div class="lbl">Movimientos</div><div class="val">'+movimientos.length+'</div></div>'+
-    '<div class="metric"><div class="lbl">Envíos (filas)</div><div class="val">'+envios+'</div></div>'+
-    '<div class="metric"><div class="lbl">Stock ≤ 0</div><div class="val'+(cero?' warn':'')+'">'+cero+'</div></div>';
+function cantMovimientos(insumo){
+  return (porInsumo[insumo]||[]).length;
 }
 
 if(window.ChartDataLabels){Chart.register(ChartDataLabels);}
@@ -443,24 +482,7 @@ function barOptsV(){
 function renderCharts(){
   var insumos=listInsumos();
 
-  // Top 10 stock
-  var byStock=insumos.slice().sort(function(a,b){return stock[b]-stock[a];}).slice(0,10);
-  destroyChart(chartTopStock);
-  chartTopStock=new Chart(document.getElementById('chartTopStock'),{
-    type:'bar',
-    data:{
-      labels:byStock.map(function(i){return i.length>22?i.substring(0,20)+'…':i;}),
-      datasets:[{
-        label:'Stock',
-        data:byStock.map(function(i){return stock[i];}),
-        backgroundColor:byStock.map(function(i){return stock[i]<=0?'#fc8181':CCM_BLUE;}),
-        borderRadius:3,borderSkipped:false
-      }]
-    },
-    options:barOptsH(function(items){return byStock[items[0].dataIndex];})
-  });
-
-  // Top 10 salidas
+  // Seguir de cerca — top 10 por salidas absolutas
   var bySal=insumos.slice().sort(function(a,b){return salidasAbs(b)-salidasAbs(a);}).slice(0,10);
   destroyChart(chartTopSalidas);
   chartTopSalidas=new Chart(document.getElementById('chartTopSalidas'),{
@@ -475,6 +497,23 @@ function renderCharts(){
       }]
     },
     options:barOptsH(function(items){return bySal[items[0].dataIndex];})
+  });
+
+  // Más movimientos — top 10 por cantidad de movimientos
+  var byMov=insumos.slice().sort(function(a,b){return cantMovimientos(b)-cantMovimientos(a);}).slice(0,10);
+  destroyChart(chartTopMovs);
+  chartTopMovs=new Chart(document.getElementById('chartTopMovs'),{
+    type:'bar',
+    data:{
+      labels:byMov.map(function(i){return i.length>22?i.substring(0,20)+'…':i;}),
+      datasets:[{
+        label:'Movimientos',
+        data:byMov.map(cantMovimientos),
+        backgroundColor:CCM_BLUE,
+        borderRadius:3,borderSkipped:false
+      }]
+    },
+    options:barOptsH(function(items){return byMov[items[0].dataIndex];})
   });
 
   // Destinos
@@ -509,6 +548,11 @@ function labelNivel(n){
   if(n==='critico') return 'Crítico';
   if(n==='bajo') return 'Bajo';
   return 'OK';
+}
+
+function suggestedQty(st){
+  if(st<=0) return UMBRAL_BAJO;
+  return Math.max(1, UMBRAL_BAJO-st);
 }
 
 function filteredSorted(){
@@ -580,6 +624,97 @@ function renderLista(){
     'Mostrando '+list.length+' de '+all.length+' insumos · crítico ≤0 · bajo ≤'+UMBRAL_BAJO+' · tocá uno para el detalle.';
 }
 
+function capturePedidoFromDom(){
+  var rows=document.querySelectorAll('#pedidoRows .pedido-row');
+  rows.forEach(function(row){
+    var name=row.getAttribute('data-insumo');
+    if(!name) return;
+    var cb=row.querySelector('input[type="checkbox"]');
+    var qtyEl=row.querySelector('input[type="number"]');
+    var qty=qtyEl?parseInt(qtyEl.value,10):NaN;
+    pedidoState[name]={
+      checked:cb?!!cb.checked:true,
+      qty:isNaN(qty)?suggestedQty(stock[name]||0):qty
+    };
+  });
+}
+
+function updatePedidoPreview(){
+  var lines=[];
+  document.querySelectorAll('#pedidoRows .pedido-row').forEach(function(row){
+    var cb=row.querySelector('input[type="checkbox"]');
+    if(!cb||!cb.checked) return;
+    var name=row.getAttribute('data-insumo')||'';
+    var qtyEl=row.querySelector('input[type="number"]');
+    var qty=qtyEl?parseInt(qtyEl.value,10):0;
+    if(isNaN(qty)||qty<=0) return;
+    lines.push('• '+name+' — cantidad: '+qty);
+  });
+  var msg='Hola! Pedido de insumos CCM:\n\n';
+  if(lines.length) msg+=lines.join('\n')+'\n\n';
+  else msg+='(sin ítems seleccionados)\n\n';
+  msg+='Gracias';
+  document.getElementById('pedidoPreview').value=msg;
+}
+
+function renderPedido(resetDefaults){
+  if(!resetDefaults) capturePedidoFromDom();
+
+  var items=listInsumos().filter(function(i){
+    var n=nivelStock(stock[i]);
+    return n==='critico'||n==='bajo';
+  });
+  items.sort(function(a,b){
+    var order={critico:0,bajo:1};
+    var d=order[nivelStock(stock[a])]-order[nivelStock(stock[b])];
+    if(d!==0) return d;
+    return stock[a]-stock[b]||a.localeCompare(b,'es');
+  });
+
+  var keepKeys={};
+  items.forEach(function(i){keepKeys[i]=true;});
+  Object.keys(pedidoState).forEach(function(k){
+    if(!keepKeys[k]) delete pedidoState[k];
+  });
+
+  var html='';
+  if(!items.length){
+    html='<div class="empty">No hay insumos críticos ni bajos para pedir</div>';
+  } else {
+    items.forEach(function(i){
+      var st=stock[i];
+      var niv=nivelStock(st);
+      var prev=pedidoState[i];
+      var checked=prev?!!prev.checked:true; // crítico y bajo: ambos marcados por defecto
+      var qty=prev&&prev.qty!=null?prev.qty:suggestedQty(st);
+      pedidoState[i]={checked:checked,qty:qty};
+      html+='<div class="pedido-row '+niv+'" data-insumo="'+esc(i)+'" onclick="event.stopPropagation()">'+
+        '<input type="checkbox"'+(checked?' checked':'')+' aria-label="Incluir '+esc(i)+'" onclick="event.stopPropagation()">'+
+        '<div><div class="pname">'+esc(i)+'</div>'+
+        '<div class="pmeta">'+labelNivel(niv)+' · stock actual: '+st+'</div></div>'+
+        '<div class="pstock" style="font-size:12px;color:#666;text-align:right">pedir</div>'+
+        '<input type="number" min="1" step="1" value="'+qty+'" onclick="event.stopPropagation()" onfocus="event.stopPropagation()">'+
+        '</div>';
+    });
+  }
+  document.getElementById('pedidoRows').innerHTML=html;
+
+  document.querySelectorAll('#pedidoRows .pedido-row').forEach(function(row){
+    var cb=row.querySelector('input[type="checkbox"]');
+    var qtyEl=row.querySelector('input[type="number"]');
+    function sync(){
+      var name=row.getAttribute('data-insumo');
+      var q=parseInt(qtyEl.value,10);
+      pedidoState[name]={checked:!!cb.checked,qty:isNaN(q)?1:q};
+      updatePedidoPreview();
+    }
+    cb.addEventListener('change',sync);
+    qtyEl.addEventListener('input',sync);
+    qtyEl.addEventListener('change',sync);
+  });
+  updatePedidoPreview();
+}
+
 function monthlyNet(insumo){
   var map={};
   (porInsumo[insumo]||[]).forEach(function(m){
@@ -642,6 +777,35 @@ document.getElementById('buscar').addEventListener('input',renderLista);
 document.getElementById('filtroStock').addEventListener('change',renderLista);
 document.getElementById('orden').addEventListener('change',renderLista);
 
+document.getElementById('btnPedidoRecargar').addEventListener('click',function(){
+  pedidoState={};
+  renderPedido(true);
+});
+document.getElementById('btnCopiarPedido').addEventListener('click',function(){
+  var ta=document.getElementById('pedidoPreview');
+  var text=ta.value||'';
+  function flash(){
+    var el=document.getElementById('pedidoCopied');
+    el.classList.add('show');
+    setTimeout(function(){el.classList.remove('show');},1600);
+  }
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(flash).catch(function(){
+      ta.removeAttribute('readonly');
+      ta.select();
+      try{document.execCommand('copy');}catch(e){}
+      ta.setAttribute('readonly','');
+      flash();
+    });
+  } else {
+    ta.removeAttribute('readonly');
+    ta.select();
+    try{document.execCommand('copy');}catch(e){}
+    ta.setAttribute('readonly','');
+    flash();
+  }
+});
+
 function showError(msg){
   var box=document.getElementById('errorBox');
   box.style.display='block';
@@ -655,9 +819,9 @@ function renderTodo(envios){
   ultimaCarga=hoy;
   document.getElementById('fechaHeader').textContent=
     'Última carga: '+hoy+' · '+movimientos.length+' mov. / '+envios+' envíos';
-  renderMetrics(envios);
   renderCharts();
   renderLista();
+  renderPedido(false);
 }
 
 function cargarConProxy(idx){
